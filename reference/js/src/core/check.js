@@ -35,7 +35,7 @@ function checkSource(s, at, ck) {
   } else if (s.type === 'youtube') {
     ck(`${at}/videoId`, isStr(s.videoId) && YT.test(s.videoId), 'is required and must be 11 characters of A-Z a-z 0-9 _ -');
   } else if (s.type === 'url') {
-    ck(`${at}/url`, isStr(s.url) && s.url.startsWith('https://'), 'is required and must start with https://');
+    ck(`${at}/url`, isStr(s.url) && /^https?:\/\//.test(s.url), 'is required and must start with http:// or https://');
     if ('mime' in s) ck(`${at}/mime`, isStr(s.mime), 'must be a string');
   }
 }

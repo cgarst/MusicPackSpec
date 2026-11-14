@@ -270,7 +270,7 @@ Every source has a `type`. It can also have these optional fields:
 |---|---|---|
 | `file` | `path` (required, under `audio/`), `mime` | An audio file in the archive. |
 | `youtube` | `videoId` (required, 11 characters) | A YouTube video, played with the service's own player. |
-| `url` | `url` (required, `https`), `mime` | Audio at a web address. |
+| `url` | `url` (required, `http` or `https`), `mime` | Audio at a web address. |
 | `embedded` | none | Audio carried inside the tab file itself, for example the audio track of a Guitar Pro 7 or later (`gp`) file. |
 | `external` | none | A recording that exists but has no playable source here. `sha256` and `durationMs` help identify it. |
 
@@ -499,7 +499,8 @@ A reader MUST protect against:
 - **Active content.** A PDF can contain scripts and links, and an audio file can be malformed. Open both with the same
   precautions as for a file from the internet.
 - **Remote content.** `url` and `youtube` sources load third-party content. Load them only when the user asks (section 10),
-  and only over `https`.
+  and prefer `https`. An `http` source is not encrypted or authenticated, so a reader SHOULD tell the user before it loads
+  one, and MAY refuse it.
 - **Hash mismatch.** A `sha256` that does not match is a warning, not proof of tampering. A hash is not a signature, and
   it does not show who wrote the file.
 

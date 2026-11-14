@@ -6,6 +6,7 @@
   stems, and sync anchors for Guitar Pro (`bar`), PDF (`pdf`), and text (`text`) tabs.
 - Added `reference/js`: a reference reader, writer, validator, and command-line tool, with container and security tests.
 - Added CI (`.github/workflows/ci.yml`).
+- A `url` source may use `http` or `https` (it was `https` only). Readers SHOULD warn before loading an `http` source.
 - Rewrote the specification text for clarity. No rules changed, except two clarifications: sync points MUST be sorted,
   and a reader MUST NOT depend on entry order.
 - Added `syncOffsetMs` on a recording, so a recording can share another's sync points with a time offset (for example a

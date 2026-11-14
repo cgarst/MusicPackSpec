@@ -164,7 +164,7 @@
           "then": {
             "required": ["url"],
             "properties": {
-              "url": { "type": "string", "pattern": "^https://" },
+              "url": { "type": "string", "pattern": "^https?://" },
               "mime": { "type": "string" }
             }
           }

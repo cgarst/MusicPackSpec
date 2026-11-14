@@ -14,3 +14,5 @@ jobs:
       - name: Reference library tests (Node)
         working-directory: reference/js
         run: npm ci && npm test
+      - name: Spec renders (Bikeshed)
+        run: pip install bikeshed && bikeshed update && python3 tools/build-spec.py

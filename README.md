@@ -25,7 +25,6 @@ is welcome, especially on the [open questions](SPEC.md#15-open-questions).
 
 ```
 song.mtab  (ZIP)
-├── mimetype          application/vnd.mtab+zip
 ├── manifest.json     song, tab, recordings
 ├── tab/song.gp5      the tab, byte for byte
 ├── audio/mix.ogg     optional audio
@@ -81,7 +80,7 @@ node bin/mtab.js unpack out.mtab <emptydir>
 ```
 
 The tests build real archives from every example, using dummy tab and audio files. They feed the reader hostile archives
-(zip slip, duplicate names, decompression bombs, a bad CRC, encryption, overlapping entries, a wrong first entry), check
+(zip slip, duplicate names, decompression bombs, a bad CRC, encryption, overlapping entries), check
 that opening a 20 MiB bundle reads under 256 KiB, force ZIP64 on small data and read it back with Python's `zipfile`, check
 that `src/core` touches no platform API, and check that the hand-written validator agrees with the JSON Schemas on every
 example, invalid case and a set of mutations. `tools/check.py` is a second, independent check of the schemas, written in Python.

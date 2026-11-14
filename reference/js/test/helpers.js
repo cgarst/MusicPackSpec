@@ -1,4 +1,4 @@
-import { MIMETYPE, zipParts, concatParts, openMtab, bytesSource } from '../src/core/index.js';
+import { zipParts, concatParts, openMtab, bytesSource } from '../src/core/index.js';
 
 const enc = new TextEncoder();
 export const u8 = (s) => enc.encode(s);
@@ -6,7 +6,6 @@ export const goodManifest = async () => ({ format: 'mtab', version: 1, tab: { pa
 import { sha256 as sha } from '../src/core/index.js';
 
 export const base = async () => [
-  { name: 'mimetype', data: u8(MIMETYPE), store: true },
   { name: 'manifest.json', data: u8(JSON.stringify(await goodManifest())) },
   { name: 'tab/a.txt', data: u8('x') },
 ];

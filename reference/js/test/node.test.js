@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sha256, isMtabBytes, bytesSource, openMtab } from '../src/core/index.js';
+import { sha256, bytesSource, openMtab } from '../src/core/index.js';
 import { packDirToBytes, packDir, writeParts, openMtabFile, audioHashWarnings, readDir } from '../src/node/index.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -24,7 +24,6 @@ function stage(name) {
 for (const name of examples) {
   test(`example ${name} packs and reads back`, async () => {
     const bytes = await packDirToBytes(stage(name));
-    assert.ok(isMtabBytes(bytes));
     const r = await openMtab(bytesSource(bytes));
     assert.deepEqual(r.warnings, []);
     assert.equal(r.manifest.format, 'mtab');
@@ -41,7 +40,7 @@ test('output is reproducible', async () => {
 test('audio entries are stored, tab is deflated', async () => {
   const bytes = Buffer.from(await packDirToBytes(stage('enriched')));
   const r = await openMtab(bytesSource(bytes));
-  assert.equal(r.entries[0], 'mimetype');
+  assert.ok(!r.entries.includes('mimetype'));
   const method = (n) => bytes.readUInt16LE(bytes.indexOf(Buffer.from(n)) - 30 + 8);
   assert.equal(method('audio/r1.ogg'), 0);
   assert.equal(method('tab/example.gp5'), 8);

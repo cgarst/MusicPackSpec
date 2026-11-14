@@ -6,7 +6,7 @@ import zlib from 'node:zlib';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { MIMETYPE, MtabError, buildMtab, concatParts, openMtab, bytesSource, sha256, zipParts, isMtabBytes, entryRange, validateManifest } from '../src/core/index.js';
+import { MtabError, buildMtab, concatParts, openMtab, bytesSource, sha256, zipParts, entryRange, validateManifest } from '../src/core/index.js';
 import { u8, goodManifest, base, build, open } from './helpers.js';
 
 const rejects = async (files, re, opts) => {
@@ -16,10 +16,11 @@ const rejects = async (files, re, opts) => {
 
 // --- container rules -------------------------------------------------------------------------------------------
 test('baseline hand-built archive is accepted', async () => assert.deepEqual((await open(await build(await base()))).warnings, []));
-test('rejects mimetype not first', async () => { const b = await base(); await rejects([b[1], b[0], b[2]], /first entry/); });
-test('rejects wrong mimetype', async () => { const b = await base(); await rejects([{ name: 'mimetype', data: u8('application/zip'), store: true }, ...b.slice(1)], /mimetype/); });
-test('rejects compressed mimetype', async () => { const b = await base(); await rejects([{ ...b[0], store: false, data: u8(MIMETYPE.repeat(20)) }, ...b.slice(1)], /first entry|mimetype/); });
-test('rejects missing manifest', async () => { const b = await base(); await rejects([b[0], b[2]], /manifest/); });
+test('rejects missing manifest', async () => { const b = await base(); await rejects([b[1]], /manifest/); });
+test('ignores a mimetype entry left by an earlier writer, wherever it is', async () => {
+  const old = { name: 'mimetype', data: u8('application/vnd.mtab+zip'), store: true };
+  for (const files of [[old, ...await base()], [...await base(), old]]) assert.deepEqual((await open(await build(files))).warnings, []);
+});
 test('rejects zip slip entry', async () => rejects([...await base(), { name: '../evil', data: u8('x') }], /bad entry name/));
 test('rejects absolute and backslash names', async () => {
   await rejects([...await base(), { name: '/abs', data: u8('x') }], /bad entry name/);
@@ -29,13 +30,13 @@ test('rejects duplicate names, also by case', async () => {
   await rejects([...await base(), { name: 'tab/a.txt', data: u8('y') }], /duplicate/);
   await rejects([...await base(), { name: 'TAB/A.TXT', data: u8('y') }], /duplicate/);
 });
-test('rejects version 2', async () => { const b = await base(); await rejects([b[0], { name: 'manifest.json', data: u8(JSON.stringify({ ...await goodManifest(), version: 2 })) }, b[2]], /version/); });
+test('rejects version 2', async () => { const b = await base(); await rejects([{ name: 'manifest.json', data: u8(JSON.stringify({ ...await goodManifest(), version: 2 })) }, b[1]], /version/); });
 test('rejects manifest with BOM', async () => {
   const b = await base();
   const data = new Uint8Array([0xef, 0xbb, 0xbf, ...u8(JSON.stringify(await goodManifest()))]);
-  await rejects([b[0], { name: 'manifest.json', data }, b[2]], /byte order mark/);
+  await rejects([{ name: 'manifest.json', data }, b[1]], /byte order mark/);
 });
-test('rejects oversized manifest', async () => { const b = await base(); await rejects([b[0], { name: 'manifest.json', data: u8(JSON.stringify({ ...await goodManifest(), pad: 'x'.repeat(1 << 21) })) }, b[2]], /too large/); });
+test('rejects oversized manifest', async () => { const b = await base(); await rejects([{ name: 'manifest.json', data: u8(JSON.stringify({ ...await goodManifest(), pad: 'x'.repeat(1 << 21) })) }, b[1]], /too large/); });
 test('rejects decompression bomb, counting output as it is produced', async () => {
   const b = await base();
   const o = await open(await build([...b, { name: 'sync/bomb.json', data: new Uint8Array(5 << 20) }]));
@@ -70,7 +71,7 @@ test('rejects encrypted flag', async () => {
 test('rejects overlapping entries', async () => {
   const bytes = Buffer.from(await build(await base()));
   const cens = []; for (let i = 0; i < bytes.length - 4; i++) if (bytes.readUInt32LE(i) === 0x02014b50) cens.push(i);
-  bytes.writeUInt32LE(bytes.readUInt32LE(cens[1] + 42), cens[2] + 42);
+  bytes.writeUInt32LE(bytes.readUInt32LE(cens[0] + 42), cens[1] + 42);
   await assert.rejects(() => open(bytes), MtabError);
 });
 test('rejects bytes that are not a zip', async () => {
@@ -80,21 +81,16 @@ test('rejects bytes that are not a zip', async () => {
 test('hash mismatch is a warning, not an error', async () => {
   const b = await base();
   const m = { ...await goodManifest(), tab: { ...(await goodManifest()).tab, sha256: '0'.repeat(64) } };
-  const o = await open(await build([b[0], { name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[2]]));
+  const o = await open(await build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]]));
   assert.match(o.warnings[0], /sha256 mismatch/);
 });
 test('unknown extra entries and x- fields are ignored', async () => {
   const b = await base();
   const m = { ...await goodManifest(), 'x-app': { a: 1 } };
-  const o = await open(await build([b[0], { name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[2], { name: 'extra/foo.bin', data: u8('q') }]));
+  const o = await open(await build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1], { name: 'extra/foo.bin', data: u8('q') }]));
   assert.deepEqual(o.warnings, []);
 });
 test('writer refuses an invalid manifest', async () => assert.rejects(() => buildMtab({ format: 'mtab', version: 1 }, {}), MtabError));
-test('isMtabBytes recognises the start of a bundle', async () => {
-  assert.ok(isMtabBytes(await build(await base())));
-  assert.ok(!isMtabBytes(u8('PK\x03\x04 not a bundle, but long enough to be checked, really')));
-  assert.ok(!isMtabBytes(new Uint8Array(10)));
-});
 test('stored entries survive a round trip with real content', async () => {
   const big = new Uint8Array(zlib.deflateRawSync(Buffer.alloc(1000, 1)));
   const o = await open(await build([...await base(), { name: 'audio/a.bin', data: big, store: true }]));
@@ -106,7 +102,7 @@ test('opening a bundle with 20 MiB of audio reads a small fraction of it, and no
   const audio = new Uint8Array(20 << 20).fill(9);
   const m = { ...await goodManifest(), recordings: [{ id: 'r1', role: 'original', sources: [{ type: 'file', path: 'audio/big.bin' }] }] };
   const b = await base();
-  const bytes = await build([b[0], { name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[2], { name: 'audio/big.bin', data: audio, store: true }]);
+  const bytes = await build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1], { name: 'audio/big.bin', data: audio, store: true }]);
   let read = 0;
   const src = { size: bytes.length, read: async (s, e) => { read += Math.min(e, bytes.length) - s; return bytes.subarray(s, e); } };
   const o = await openMtab(src);
@@ -145,7 +141,6 @@ test('zip64 records are written and read back (forced with a low threshold)', as
   assert.equal(py.status, 0, py.stderr?.toString());
   assert.equal(py.stdout.toString().trim(), String(files.length));
 });
-test('the first entry cannot be zip64', async () => { const b = await base(); await assert.rejects(() => zipParts(b, { zip64Threshold: 10 }), /first entry/); });
 // --- portability -----------------------------------------------------------------------------------------------
 test('src/core uses no Node, DOM or Buffer API', () => {
   const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/core');

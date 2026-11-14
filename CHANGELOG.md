@@ -2,6 +2,11 @@
 
 ## Version 1
 
+- Removed the `mimetype` entry. It was borrowed from EPUB and OpenDocument so that byte-sniffing tools could identify the
+  file, but nothing used it, and macOS Archive Utility refuses to expand a ZIP whose first entry is `mimetype`. A file is
+  now recognised by its extension and by `manifest.json`. Writers no longer write the entry, there is no rule on entry
+  order, and a reader ignores a `mimetype` entry in an older file. `isMtabBytes` is removed from the reference code.
+
 - First release: ZIP container, manifest, song metadata (all optional), tab, recordings with several sources,
   stems, and sync anchors for Guitar Pro (`bar`), PDF (`pdf`), and text (`text`) tabs.
 - Added `reference/js`: a reference reader, writer, validator, and command-line tool, with container and security tests.

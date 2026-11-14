@@ -6,7 +6,7 @@ import { u8, goodManifest, base } from './helpers.js';
 async function syncBundle(recordings, syncs, anchorType = 'text') {
   const m = { ...await goodManifest(), recordings };
   const b = await base();
-  const files = [b[0], { name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[2]];
+  const files = [{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]];
   for (const [name, pts] of Object.entries(syncs)) {
     const rec = recordings.find((r) => r.sync === name).id;
     files.push({ name, data: u8(JSON.stringify({ version: 1, recording: rec, anchorType, points: pts.map((t, i) => ({ timeMs: t, line: i, col: 0 })) })) });
@@ -69,7 +69,7 @@ test('a misaligned stem uses syncFrom with an offset', async () => {
 test('an embedded source on a gp tab is accepted; on another tab format it is a warning', async () => {
   const gp = { ...await goodManifest(), tab: { path: 'tab/a.txt', format: 'gp', sha256: (await goodManifest()).tab.sha256 }, recordings: [{ id: 'a', role: 'original', sources: [{ type: 'embedded' }] }] };
   const b = await base();
-  const make = async (m) => openMtab(bytesSource(await concatParts((await zipParts([b[0], { name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[2]])).parts)));
+  const make = async (m) => openMtab(bytesSource(await concatParts((await zipParts([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]])).parts)));
   assert.deepEqual((await make(gp)).warnings, []);
   const txt = { ...gp, tab: { ...gp.tab, format: 'txt' } };
   assert.match((await make(txt)).warnings[0], /embedded source on a txt tab/);
@@ -77,6 +77,6 @@ test('an embedded source on a gp tab is accepted; on another tab format it is a 
 test('two embedded sources on one recording are refused', async () => {
   const m = { ...await goodManifest(), recordings: [{ id: 'a', role: 'original', sources: [{ type: 'embedded', id: 'e1' }, { type: 'embedded', id: 'e2' }] }] };
   const b = await base();
-  const bytes = await concatParts((await zipParts([b[0], { name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[2]])).parts);
+  const bytes = await concatParts((await zipParts([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]])).parts);
   await assert.rejects(() => openMtab(bytesSource(bytes)), /more than one embedded/);
 });

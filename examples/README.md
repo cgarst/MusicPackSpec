@@ -5,8 +5,7 @@ manifests name are not included, because they would be copyrighted or binary. Th
 zeros.
 
 To make a real file, add the tab (and any audio) at the paths the manifest names, then run `node
-reference/js/bin/mtab.js pack <folder> out.mtab`. The tool sets the hashes of the files it finds and writes `mimetype`
-first, stored.
+reference/js/bin/mtab.js pack <folder> out.mtab`. The tool sets the hashes of the files it finds.
 
 | Folder | Shows |
 |---|---|

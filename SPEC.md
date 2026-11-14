@@ -61,7 +61,6 @@ A `.mtab` file is a ZIP archive. It uses the ISO/IEC 21320 subset of ZIP, plus Z
 layout:
 
 ```
-mimetype          the ASCII bytes application/vnd.mtab+zip   (first entry, stored)
 manifest.json     the manifest (section 4)
 tab/<name>        the tab file, byte for byte as supplied (omitted when tab.externalPath is used; section 6)
 audio/<name>      optional audio files
@@ -70,15 +69,15 @@ sync/<name>.json  optional sync files (section 9)
 
 Rules:
 
-1. The first entry MUST be `mimetype`. It MUST be stored without compression, have no extra field, and contain exactly
-   `application/vnd.mtab+zip` with no trailing newline. A reader MAY use it to identify a file without parsing the
-   archive.
+1. The archive has no `mimetype` entry, and a writer MUST NOT write one. A reader recognises a file by its `manifest.json`
+   (`format` is `mtab`), together with the `.mtab` extension and the media type `application/vnd.mtab+zip`. An entry named
+   `mimetype` in a file from an earlier writer is an entry the manifest does not name (rule 7), so a reader ignores it.
 2. `manifest.json` MUST be present. It MUST be UTF-8 JSON with no byte order mark, and at most 1 MiB.
 3. Entry names MUST be UTF-8 and use `/` as the separator. A name MUST be relative and MUST NOT contain a `..` segment,
    an empty segment, a backslash, or a control character. Names MUST be unique, also when compared case-insensitively.
 4. The compression method MUST be Stored or Deflate. Encryption MUST NOT be used.
 5. Audio entries SHOULD be Stored. Audio is already compressed, and a Stored entry lets a reader seek without inflating.
-6. A reader MUST NOT depend on entry order, except that `mimetype` comes first. The manifest MUST NOT hold offsets or
+6. A reader MUST NOT depend on entry order. The manifest MUST NOT hold offsets or
    checksums of the archive itself. (Hashes of file contents are fine.) This lets a tool rewrite the archive.
 7. An entry that the manifest does not name is allowed, and readers MUST ignore it. A writer that rewrites a file SHOULD
    keep such entries.
@@ -90,10 +89,10 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 1. A writer MUST use ZIP64 where the ZIP format requires it: an entry or offset of 4 GiB or more, or 65535 or more
    entries. A reader MUST read ZIP64.
 2. A reader MUST be able to open a file without reading its audio. Opening needs only the end of the archive, the
-   central directory, the `mimetype` entry, the manifest, the tab and the sync files. The reader SHOULD read these by
+   central directory, the manifest, the tab and the sync files. The reader SHOULD read these by
    random access, not load the whole archive into memory.
 3. A reader MUST take sizes, offsets and checksums from the central directory, and MUST ignore any different value in a
-   local header. A writer MAY use data descriptors for entries other than `mimetype`.
+   local header. A writer MAY use data descriptors.
 4. A Stored audio entry is a contiguous byte range of the archive. A reader MAY play or copy it from that range without
    inflating or copying it. It MAY skip the CRC-32 check for such an entry, because checking it means reading all of it.
 5. A reader that inflates an entry MUST count the output as it goes and stop at the limits in section 12. It MUST NOT
@@ -462,7 +461,7 @@ specification, and a reader MAY use `song.ids` for them.
 
 A writer:
 
-1. MUST write `mimetype` first and follow section 3.
+1. MUST follow section 3.
 2. MUST write the manifest fields marked required.
 3. MUST write a valid sync file for each recording that it gives sync points to.
 4. MUST store an embedded tab file (`tab.path`) byte for byte (a `txt` tab as UTF-8).

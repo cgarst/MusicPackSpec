@@ -1,0 +1,36 @@
+{
+  "format": "mtab",
+  "version": 1,
+  "song": {
+    "title": "Example Song"
+  },
+  "tab": {
+    "path": "tab/example.pdf",
+    "format": "pdf",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "pages": 3,
+    "startPage": 1,
+    "endPage": 3,
+    "tuning": [
+      "D2",
+      "A2",
+      "D3",
+      "G3",
+      "B3",
+      "E4"
+    ]
+  },
+  "recordings": [
+    {
+      "id": "r1",
+      "role": "original",
+      "sync": "sync/r1.json",
+      "sources": [
+        {
+          "type": "youtube",
+          "videoId": "BBBBBBBBBBB"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "format": "mtab",
+  "version": 1,
+  "song": {
+    "title": "Example Song",
+    "artist": "Example Artist"
+  },
+  "tab": {
+    "path": "tab/example.gp",
+    "format": "gp",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "recordings": [
+    {
+      "id": "r1",
+      "role": "original",
+      "sync": "sync/r1.json",
+      "sources": [
+        {
+          "type": "embedded",
+          "id": "s-emb",
+          "offsetMs": 0
+        },
+        {
+          "type": "youtube",
+          "id": "s-yt",
+          "videoId": "AAAAAAAAAAA"
+        }
+      ]
+    }
+  ],
+  "defaultRecording": "r1"
+}

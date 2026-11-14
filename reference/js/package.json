@@ -1,0 +1,25 @@
+{
+  "name": "mtab-reference",
+  "version": "0.1.0",
+  "description": "Reference reader, writer and validator for the Multi-Track Tab (.mtab) format. The core runs in Node, browsers and webviews; ./node adds files on disk.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "mtab": "bin/mtab.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "exports": {
+    ".": "./src/core/index.js",
+    "./node": "./src/node/index.js"
+  },
+  "devDependencies": {
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1"
+  }
+}

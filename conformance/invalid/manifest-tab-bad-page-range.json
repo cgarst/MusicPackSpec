@@ -1,0 +1,12 @@
+{
+  "format": "mtab",
+  "version": 1,
+  "tab": {
+    "path": "tab/book.pdf",
+    "format": "pdf",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "pages": 10,
+    "startPage": 5,
+    "endPage": 3
+  }
+}

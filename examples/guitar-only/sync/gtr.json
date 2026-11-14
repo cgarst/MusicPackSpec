@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "recording": "gtr",
+  "anchorType": "bar",
+  "points": [
+    {
+      "timeMs": 0,
+      "bar": 0
+    },
+    {
+      "timeMs": 1800,
+      "bar": 1
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "format": "mtab",
+  "version": 1,
+  "tab": {
+    "path": "tab/lesson.gp5",
+    "format": "gp5",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "recordings": [
+    {
+      "id": "gtr",
+      "role": "stem",
+      "label": "Guitar only",
+      "stem": {
+        "instrument": "guitar"
+      },
+      "sync": "sync/gtr.json",
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/gtr.ogg"
+        }
+      ]
+    }
+  ]
+}

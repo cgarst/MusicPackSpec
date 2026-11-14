@@ -1,0 +1,38 @@
+{
+  "format": "mtab",
+  "version": 1,
+  "song": {
+    "title": "Example Song",
+    "artist": "Example Artist"
+  },
+  "tab": {
+    "path": "tab/example.gp5",
+    "format": "gp5",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "recordings": [
+    {
+      "id": "r1",
+      "role": "original",
+      "sync": "sync/r1.json",
+      "sources": [
+        {
+          "type": "file",
+          "id": "s-file",
+          "path": "audio/r1.ogg",
+          "mime": "audio/ogg",
+          "durationMs": 215000,
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "derivedFrom": "s-yt",
+          "offsetMs": 0
+        },
+        {
+          "type": "youtube",
+          "id": "s-yt",
+          "videoId": "AAAAAAAAAAA"
+        }
+      ]
+    }
+  ],
+  "defaultRecording": "r1"
+}

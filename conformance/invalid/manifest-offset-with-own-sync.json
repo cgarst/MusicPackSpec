@@ -1,0 +1,24 @@
+{
+  "format": "mtab",
+  "version": 1,
+  "tab": {
+    "path": "tab/a.gp5",
+    "format": "gp5",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "recordings": [
+    {
+      "id": "r1",
+      "role": "original",
+      "sources": []
+    },
+    {
+      "id": "r2",
+      "role": "backing",
+      "syncFrom": "r1",
+      "sync": "sync/r2.json",
+      "syncOffsetMs": 2000,
+      "sources": []
+    }
+  ]
+}

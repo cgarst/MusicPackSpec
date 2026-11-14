@@ -1,0 +1,10 @@
+{
+  "format": "mtab",
+  "version": 1,
+  "tab": {
+    "path": "tab/book.pdf",
+    "externalPath": "book.pdf",
+    "format": "pdf",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+}

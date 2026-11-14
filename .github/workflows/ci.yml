@@ -1,0 +1,16 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Schemas, examples and invalid cases (Python)
+        run: pip install jsonschema && python3 tools/check.py
+      - name: Reference library tests (Node)
+        working-directory: reference/js
+        run: npm ci && npm test

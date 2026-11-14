@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "recording": "mix",
+  "anchorType": "bar",
+  "points": [
+    {
+      "timeMs": 0,
+      "bar": 0
+    },
+    {
+      "timeMs": 2000,
+      "bar": 1
+    }
+  ]
+}

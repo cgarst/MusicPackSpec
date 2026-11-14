@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mtab:schema:sync:1",
+  "title": "Multi-Track Tab sync file, version 1",
+  "description": "A sync file under sync/ in a .mtab archive. Aligns the tab to one recording. anchorType must match the tab format in the manifest.",
+  "type": "object",
+  "required": [
+    "version",
+    "recording",
+    "anchorType",
+    "points"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "recording": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "anchorType": {
+      "enum": [
+        "bar",
+        "pdf",
+        "text"
+      ]
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "points": {
+      "type": "array"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "anchorType": {
+            "const": "bar"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "points": {
+            "items": {
+              "$ref": "#/$defs/barPoint"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "anchorType": {
+            "const": "pdf"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "points": {
+            "items": {
+              "$ref": "#/$defs/pdfPoint"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "anchorType": {
+            "const": "text"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "points": {
+            "items": {
+              "$ref": "#/$defs/textPoint"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "common": {
+      "type": "object",
+      "required": [
+        "timeMs"
+      ],
+      "properties": {
+        "timeMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Milliseconds on the recording's timeline."
+        },
+        "source": {
+          "enum": [
+            "tap",
+            "manual",
+            "auto"
+          ],
+          "default": "manual"
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "barPoint": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common"
+        }
+      ],
+      "required": [
+        "bar"
+      ],
+      "properties": {
+        "bar": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "occurrence": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "pos": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        }
+      }
+    },
+    "pdfPoint": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common"
+        }
+      ],
+      "required": [
+        "page"
+      ],
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Horizontal position. With y, or neither."
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "dependentRequired": {
+        "x": [
+          "y"
+        ],
+        "y": [
+          "x"
+        ]
+      }
+    },
+    "textPoint": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common"
+        }
+      ],
+      "required": [
+        "line"
+      ],
+      "properties": {
+        "line": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "col": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

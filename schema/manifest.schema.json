@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mtab:schema:manifest:1",
+  "title": "Multi-Track Tab manifest, version 1",
+  "description": "manifest.json inside a .mtab archive. Unknown fields are allowed and ignored by readers.",
+  "type": "object",
+  "required": ["format", "version", "tab"],
+  "properties": {
+    "format": { "const": "mtab" },
+    "version": { "const": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "generator": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string" }
+      }
+    },
+    "song": { "$ref": "#/$defs/song" },
+    "tab": { "$ref": "#/$defs/tab" },
+    "recordings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/recording" }
+    },
+    "defaultRecording": { "$ref": "#/$defs/id" }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "archivePath": {
+      "type": "string",
+      "description": "Relative, UTF-8, '/' separated, no empty or '..' segment, no backslash.",
+      "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))(?!.*//)(?!.*\\\\)[^\\u0000-\\u001f]+$"
+    },
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "song": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "artist": { "type": "string" },
+        "composer": { "type": "string" },
+        "album": { "type": "string" },
+        "year": { "type": "integer" },
+        "trackNumber": { "type": "integer", "minimum": 0 },
+        "mediumNumber": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 0, "description": "Milliseconds." },
+        "ids": {
+          "type": "object",
+          "properties": {
+            "musicbrainz": {
+              "type": "object",
+              "properties": {
+                "recording": { "$ref": "#/$defs/uuid" },
+                "artist": { "$ref": "#/$defs/uuid" },
+                "release": { "$ref": "#/$defs/uuid" },
+                "releaseGroup": { "$ref": "#/$defs/uuid" }
+              }
+            },
+            "isrc": { "type": "string" }
+          }
+        }
+      }
+    },
+    "tab": {
+      "type": "object",
+      "required": ["format", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/archivePath" },
+        "externalPath": { "$ref": "#/$defs/archivePath" },
+        "format": { "enum": ["gp3", "gp4", "gp5", "gp", "gpx", "pdf", "txt"] },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "name": { "type": "string" },
+        "pages": { "type": "integer", "minimum": 1 },
+        "startPage": { "type": "integer", "minimum": 1 },
+        "endPage": { "type": "integer", "minimum": 1 },
+        "tuning": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-G][#b]?(-?[0-9])?$" },
+          "minItems": 1
+        }
+      },
+      "oneOf": [
+        { "required": ["path"] },
+        { "required": ["externalPath"] }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              { "required": ["externalPath"] },
+              { "required": ["startPage"] },
+              { "required": ["endPage"] }
+            ]
+          },
+          "then": {
+            "properties": { "format": { "const": "pdf" } }
+          }
+        }
+      ]
+    },
+    "recording": {
+      "type": "object",
+      "required": ["id", "role", "sources"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "role": { "type": "string", "minLength": 1, "description": "Open vocabulary. Defined: original, backing, stem." },
+        "label": { "type": "string" },
+        "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } },
+        "sync": { "$ref": "#/$defs/archivePath" },
+        "syncFrom": { "$ref": "#/$defs/id" },
+        "syncOffsetMs": { "type": "integer", "description": "Added to the points inherited through syncFrom. May be negative." },
+        "stemOf": { "$ref": "#/$defs/id" },
+        "stemsComplete": { "type": "boolean" },
+        "stem": {
+          "type": "object",
+          "properties": {
+            "instrument": { "type": "string" },
+            "track": { "type": "integer", "minimum": 0 },
+            "trackName": { "type": "string" }
+          }
+        }
+      },
+      "allOf": [
+        { "if": { "required": ["stemOf"] }, "then": { "properties": { "role": { "const": "stem" } } } },
+        { "dependentRequired": { "syncOffsetMs": ["syncFrom"] } },
+        { "if": { "required": ["sync"] }, "then": { "not": { "required": ["syncOffsetMs"] } } }
+      ]
+    },
+    "source": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1, "description": "Defined: file, youtube, url, embedded, external. Unknown types are skipped by readers." },
+        "id": { "$ref": "#/$defs/id" },
+        "offsetMs": { "type": "number" },
+        "durationMs": { "type": "number", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "derivedFrom": { "$ref": "#/$defs/id" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "file" } }, "required": ["type"] },
+          "then": {
+            "required": ["path"],
+            "properties": {
+              "path": { "$ref": "#/$defs/archivePath" },
+              "mime": { "type": "string" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "youtube" } }, "required": ["type"] },
+          "then": {
+            "required": ["videoId"],
+            "properties": { "videoId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{11}$" } }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "url" } }, "required": ["type"] },
+          "then": {
+            "required": ["url"],
+            "properties": {
+              "url": { "type": "string", "pattern": "^https://" },
+              "mime": { "type": "string" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

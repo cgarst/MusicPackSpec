@@ -1,0 +1,106 @@
+{
+  "format": "mtab",
+  "version": 1,
+  "song": {
+    "title": "Example Song",
+    "artist": "Example Artist"
+  },
+  "tab": {
+    "path": "tab/example.gp5",
+    "format": "gp5",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "recordings": [
+    {
+      "id": "mix",
+      "role": "original",
+      "label": "Full mix",
+      "stemsComplete": true,
+      "sync": "sync/mix.json",
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/mix.ogg",
+          "mime": "audio/ogg"
+        }
+      ]
+    },
+    {
+      "id": "gtr1",
+      "role": "stem",
+      "stemOf": "mix",
+      "label": "Lead guitar",
+      "stem": {
+        "instrument": "guitar",
+        "track": 0,
+        "trackName": "Lead"
+      },
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/gtr1.ogg",
+          "mime": "audio/ogg"
+        }
+      ]
+    },
+    {
+      "id": "gtr2",
+      "role": "stem",
+      "stemOf": "mix",
+      "label": "Rhythm guitar",
+      "stem": {
+        "instrument": "guitar",
+        "track": 1,
+        "trackName": "Rhythm"
+      },
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/gtr2.ogg",
+          "mime": "audio/ogg"
+        }
+      ]
+    },
+    {
+      "id": "drums",
+      "role": "stem",
+      "stemOf": "mix",
+      "stem": {
+        "instrument": "drums"
+      },
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/drums.ogg",
+          "mime": "audio/ogg"
+        }
+      ]
+    },
+    {
+      "id": "bk",
+      "role": "backing",
+      "label": "No guitar",
+      "syncFrom": "mix",
+      "syncOffsetMs": 2000,
+      "sources": [
+        {
+          "type": "url",
+          "url": "https://media.invalid/backing.mp3",
+          "mime": "audio/mpeg"
+        }
+      ]
+    },
+    {
+      "id": "live",
+      "role": "live",
+      "label": "Live 1999",
+      "sources": [
+        {
+          "type": "external",
+          "durationMs": 230000
+        }
+      ]
+    }
+  ],
+  "defaultRecording": "mix"
+}

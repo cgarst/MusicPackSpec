@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "recording": "r1",
+  "anchorType": "pdf",
+  "points": [
+    {
+      "timeMs": 0,
+      "page": 1,
+      "x": 0.5
+    }
+  ]
+}

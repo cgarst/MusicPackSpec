@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "recording": "r1",
+  "anchorType": "text",
+  "points": [
+    {
+      "timeMs": 0,
+      "line": 4,
+      "col": 3
+    },
+    {
+      "timeMs": 4000,
+      "line": 4,
+      "col": 35
+    },
+    {
+      "timeMs": 8000,
+      "line": 12,
+      "col": 3
+    },
+    {
+      "timeMs": 12000,
+      "line": 4
+    },
+    {
+      "timeMs": 16000,
+      "line": 12,
+      "col": 3
+    }
+  ]
+}

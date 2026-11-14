@@ -227,6 +227,8 @@ A reader MAY import a file as another variation of a song that it already has. H
    the same `song` metadata in each, so that a reader can match them.
 
 
+## 7. Recordings
+
 `recordings` is an ordered array. Each entry is one recording: one performance, in one or more forms (the `sources`).
 
 | Field | Type | Required | Meaning |

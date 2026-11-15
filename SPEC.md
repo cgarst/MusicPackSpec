@@ -1,6 +1,6 @@
 # Music Pack (.mpak) Specification
 
-**Version 1.** Changes within version 1 only add optional features. A change that breaks existing files is a new version. The manifest `version` field says which version a file uses.
+**Version 1.0.** Changes within version 1 only add optional features, and make a new minor version such as 1.1. A change that breaks existing files is a new version. The manifest `version` field says which version a file uses.
 
 A Music Pack file (extension `.mpak`) packages one song. It holds the score, the recordings that go with
 it (original, backing track, stems), and the sync points that align the score to each recording. The file is a ZIP archive

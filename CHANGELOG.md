@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 1
+## Version 1.0
 
 - A file can now hold several scores. The manifest field `score` is replaced by the array `scores`, and the first item is the
   primary score. Each score has an `id`, and may have a `label`. Sync is kept per score and recording: a recording's `sync`

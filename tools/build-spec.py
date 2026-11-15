@@ -18,9 +18,9 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "site"
 
 HEADER = """<pre class=metadata>
-Title: Music Pack (.mpak) Specification, version 1.0
+Title: Music Pack (.mpak) Specification
 Shortname: mpak
-Level: none
+Level: 1
 Status: LS
 Indent: 2
 ED: https://github.com/cgarst/MusicPackSpec

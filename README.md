@@ -6,7 +6,7 @@ backing track, stems), and the **sync points** that align each score to each rec
 The file is a ZIP archive of ordinary files, so any language can read and write it. The score inside is an existing file
 (Guitar Pro, MusicXML, MuseScore, MIDI, ABC, PDF, or plain text), stored untouched.
 
-**Version 1.0.** Feedback is welcome from anyone who builds a score reader or editor.
+**Version 1.** Feedback is welcome from anyone who builds a score reader or editor.
 
 ## What is in this repository
 

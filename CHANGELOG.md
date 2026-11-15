@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 1.0
+## Version 1
 
 - Added "Changing a score" to section 11. A writer that replaces or edits a score file in an existing pack must update its
   `sha256` and must either confirm that the sync points still apply or remove them, and the same holds for an alternate.

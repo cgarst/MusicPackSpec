@@ -174,7 +174,7 @@ two arrangements (section 6.2).
 | `label` | string | no | Name for display, such as `"Guitar Pro"` or `"Piano arrangement"`. |
 | `path` | string | unless `externalPath` | Archive path of the score file, under `score/`. |
 | `externalPath` | string | unless `path` | Relative path to a shared PDF file outside the archive (`pdf` only). |
-| `format` | enum | yes | `gp3`, `gp4`, `gp5`, `gp` (Guitar Pro 7 and later), `gpx`, `musicxml` (uncompressed MusicXML), `mxl` (compressed MusicXML), `mscz` (MuseScore), `midi` (Standard MIDI File), `abc` (ABC notation), `pdf`, `txt`. |
+| `format` | enum | yes | `gp3`, `gp4`, `gp5`, `gp` (Guitar Pro 7 and later), `gpx`, `musicxml` (uncompressed MusicXML), `mxl` (compressed MusicXML), `mscz` (MuseScore), `midi` (Standard MIDI File), `abc` (ABC notation), `alphatex` (alphaTex, `.atex`), `pdf`, `txt`. |
 | `sha256` | string | yes | Lowercase hex SHA-256 of the score file's bytes. |
 | `name` | string | no | The original file name, for display. |
 | `pages` | integer | no | Page count of the PDF file, for `pdf`. |
@@ -190,7 +190,7 @@ two arrangements (section 6.2).
   so a later version of the score's format cannot change what an index means. A reader reads the file with the rules of
   the format version that wrote it (`gp`, `mscz`).
 - A writer MUST store an embedded score file (`path`) exactly as supplied and MUST NOT convert or re-encode it. The one
-  exception is a `txt` or `abc` score, which MUST be UTF-8. If such a score uses another encoding, the writer converts it
+  exception is a `txt`, `abc`, or `alphatex` score, which MUST be UTF-8. If such a score uses another encoding, the writer converts it
   to UTF-8 and records the hash of the converted file.
 - `sha256` identifies the score file that the score's sync anchors (and, for the primary score, the stem track links) were
   written against (for an external PDF, the whole PDF file). If a reader finds a different hash, it SHOULD tell the user that sync points may be wrong, and it
@@ -209,7 +209,7 @@ two arrangements (section 6.2).
 
   A score for several instruments lists one entry for each instrument that has a tuning worth stating.
 - The format decides the anchor type that sync uses (section 9): `gp3`, `gp4`, `gp5`, `gp`, `gpx`, `musicxml`, `mxl`,
-  and `mscz` use `bar`; `midi` uses `tick`; `pdf` uses `pdf`; `txt` and `abc` use `text`.
+  `mscz`, and `alphatex` use `bar`; `midi` uses `tick`; `pdf` uses `pdf`; `txt` and `abc` use `text`.
 - The score can be for any instrument. `instruments` can describe any fretted or stringed instrument, and the Guitar Pro
   formats suit guitar, but neither limits what a file can hold.
 
@@ -487,7 +487,7 @@ recording's `sync` field refers to it, under the `id` of the score:
   If exact timing matters, a writer SHOULD give the recording its own sync files.
 - Before the first point and after the last, a reader holds the first or last position. It MAY extrapolate instead.
 
-### 9.1 Anchor type `bar` (Guitar Pro, MusicXML, and MuseScore scores)
+### 9.1 Anchor type `bar` (Guitar Pro, MusicXML, MuseScore, and alphaTex scores)
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -505,6 +505,11 @@ The master bar list of each format is:
   attribute: it can repeat, skip, or be non-numeric (pickup bars, endings). For `mxl`, use the root file that the
   archive's `META-INF/container.xml` names.
 - MuseScore (`mscz`): the score's measures in the order that MuseScore lists them.
+- alphaTex (`alphatex`): the master bars of the source. Bar `n` is the n-th bar of every staff, and a bar ends at a `|` or
+  at the next bar metadata tag, as the alphaTex syntax defines. The number of bars is the largest bar count of any staff.
+  A staff with fewer bars counts as having empty bars at the end. Ignore the printed bar numbers (`\ac`, `\barNumber`),
+  and do not expand repeats (`\ro`, `\rc`, `\ae`). The file MAY contain its own `\sync` points. A reader ignores them
+  and uses the sync file, as it does for the sync points inside a `gp` file (section 7).
 
 ### 9.2 Anchor type `pdf`
 
@@ -592,7 +597,7 @@ A writer:
 1. MUST follow section 3.
 2. MUST write the manifest fields marked required.
 3. MUST write a valid sync file for each recording and score that it gives sync points to.
-4. MUST store an embedded score file (a score's `path`) byte for byte (a `txt` or `abc` score as UTF-8).
+4. MUST store an embedded score file (a score's `path`) byte for byte (a `txt`, `abc`, or `alphatex` score as UTF-8).
 5. SHOULD write `generator`.
 6. SHOULD write audio entries Stored, and MUST use ZIP64 where section 3.1 requires it.
 7. SHOULD write a file in one pass over its audio, without holding the audio in memory.

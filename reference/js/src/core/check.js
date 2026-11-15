@@ -12,7 +12,7 @@ const YT = /^[A-Za-z0-9_-]{11}$/;
 
 export const ANCHOR = {
   gp3: 'bar', gp4: 'bar', gp5: 'bar', gp: 'bar', gpx: 'bar', musicxml: 'bar', mxl: 'bar', mscz: 'bar',
-  midi: 'tick', abc: 'text', pdf: 'pdf', txt: 'text',
+  midi: 'tick', abc: 'text', alphatex: 'bar', pdf: 'pdf', txt: 'text',
 };
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);

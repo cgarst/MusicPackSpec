@@ -33,7 +33,7 @@ song.mpak  (ZIP)
 - The song metadata, recordings, and sync points are all optional. The only required content is a score.
 - A recording can be a file in the archive, a YouTube video, a web address, or only a reference.
 - Sync points work with these scores:
-  - Guitar Pro, MusicXML, and MuseScore: by bar.
+  - Guitar Pro, MusicXML, MuseScore, and alphaTex: by bar.
   - MIDI: by tick.
   - PDF: by page and position.
   - Text and ABC: by line and column.

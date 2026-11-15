@@ -133,8 +133,10 @@ export async function buildMpak(manifest, files, { zip64Threshold } = {}) {
 }
 
 /** A score entry for the manifest: path, format (from the extension) and sha256. */
+const EXT_FORMAT = { atex: 'alphatex', mid: 'midi' };
 export async function scoreEntry(path, bytes) {
-  return { path, format: path.split('.').pop().toLowerCase(), sha256: await sha256(bytes) };
+  const ext = path.split('.').pop().toLowerCase();
+  return { path, format: EXT_FORMAT[ext] ?? ext, sha256: await sha256(bytes) };
 }
 
 export { LIMITS, MpakError, ANCHOR, validateManifest, validateSync };

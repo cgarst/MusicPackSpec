@@ -1,0 +1,27 @@
+{
+  "format": "mpak",
+  "version": 1,
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/example.atex",
+      "format": "alphatex",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "recordings": [
+    {
+      "id": "r1",
+      "role": "original",
+      "sync": {
+        "main": "sync/r1.json"
+      },
+      "sources": [
+        {
+          "type": "youtube",
+          "videoId": "EEEEEEEEEEE"
+        }
+      ]
+    }
+  ]
+}

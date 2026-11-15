@@ -96,7 +96,7 @@
         "label": { "type": "string" },
         "path": { "$ref": "#/$defs/archivePath" },
         "externalPath": { "$ref": "#/$defs/archivePath" },
-        "format": { "enum": ["gp3", "gp4", "gp5", "gp", "gpx", "musicxml", "mxl", "mscz", "midi", "abc", "pdf", "txt"] },
+        "format": { "enum": ["gp3", "gp4", "gp5", "gp", "gpx", "musicxml", "mxl", "mscz", "midi", "abc", "alphatex", "pdf", "txt"] },
         "sha256": { "$ref": "#/$defs/sha256" },
         "name": { "type": "string" },
         "pages": { "type": "integer", "minimum": 1 },

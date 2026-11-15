@@ -7,6 +7,10 @@
   when it merges files. Section 6.2 no longer calls such recordings "the same recording": they are duplicates only when
   their sync points are identical. Added the example `alternate-sync`.
 
+- Added the score format `alphatex` (alphaTex, `.atex`). It uses the `bar` anchor, and section 9.1 defines its bar list: the
+  master bars of the source, counted over all staves, with printed bar numbers ignored and repeats not expanded. A score of
+  this format MUST be UTF-8, and a reader ignores any `\sync` points inside the file in favour of the sync file.
+
 - Added "Changing a score" to section 11. A writer that replaces or edits a score file in an existing pack must update its
   `sha256` and must either confirm that the sync points still apply or remove them, and the same holds for an alternate.
   A reader or editor that stores sync points outside the file should key them by the score's `sha256`.

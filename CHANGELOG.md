@@ -2,6 +2,8 @@
 
 ## Version 1
 
+- Removed `defaultRecording`. The first recording in `recordings` is the default, so a writer orders the list.
+
 - Renamed "tab" to "score" throughout. The manifest field `tab` is now `score`, the archive directory `tab/` is now
   `score/`, and the reference code uses `score`, `externalScore` and `scoreEntry`. The one remaining use of "tab" is
   "ASCII tab", the plain-text notation.

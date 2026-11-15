@@ -38,8 +38,6 @@ def rule_errors_manifest(m):
         for s in r.get("sources", []):
             if "derivedFrom" in s and s["derivedFrom"] not in sids:
                 errs.append(f"{r['id']}: derivedFrom names unknown source {s['derivedFrom']}")
-    if "defaultRecording" in m and m["defaultRecording"] not in ids:
-        errs.append("defaultRecording names unknown recording")
     return errs
 
 

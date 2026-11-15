@@ -82,10 +82,7 @@ export async function openMpak(source, { limits = LIMITS, hash = sha256, externa
     }
     return null;
   };
-  const defaultRecording = () => {
-    const recs = manifest.recordings || [];
-    return recs.find((r) => r.id === manifest.defaultRecording) || recs.find((r) => r.role === 'original') || recs[0] || null;
-  };
+  const defaultRecording = () => (manifest.recordings || [])[0] || null;
   return { manifest, entries: entries.map((e) => e.name), warnings, score, sync: resolveSync, defaultRecording, file, stream, range };
 }
 

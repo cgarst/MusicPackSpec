@@ -22,8 +22,7 @@
     "recordings": {
       "type": "array",
       "items": { "$ref": "#/$defs/recording" }
-    },
-    "defaultRecording": { "$ref": "#/$defs/id" }
+    }
   },
   "$defs": {
     "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },

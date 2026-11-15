@@ -106,7 +106,6 @@ export function manifestSchemaErrors(m) {
     if ('tuning' in t) ck('/score/tuning', Array.isArray(t.tuning) && t.tuning.length >= 1 && t.tuning.every((n) => isStr(n) && TUNING.test(n)), 'must be a non-empty array of pitch names');
   }
   if ('recordings' in m && ck('/recordings', Array.isArray(m.recordings), 'must be an array')) m.recordings.forEach((r, i) => checkRecording(r, `/recordings/${i}`, ck));
-  if ('defaultRecording' in m) ck('/defaultRecording', isStr(m.defaultRecording) && ID.test(m.defaultRecording), 'must be an id');
   return errs;
 }
 
@@ -135,7 +134,6 @@ export function manifestRuleErrors(m) {
       seen.add(next.id); cur = next;
     }
   }
-  if ('defaultRecording' in m && !ids.includes(m.defaultRecording)) errs.push('defaultRecording names unknown recording');
   return errs;
 }
 

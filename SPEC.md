@@ -113,7 +113,6 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 | `song` | object | no | Section 5. May be empty or absent. |
 | `score` | object | yes | Section 6. |
 | `recordings` | array | no | Section 7. |
-| `defaultRecording` | string | no | Id of the recording to use first. |
 
 Other fields are allowed. A reader MUST ignore a field it does not know. Application-private fields SHOULD start with
 `x-` (section 13).
@@ -298,8 +297,8 @@ Other types are allowed. A source of any type MAY appear on any recording, inclu
 
 ### Default recording
 
-`defaultRecording` names the recording to use first. If it is missing, or names a recording that does not exist, a reader
-uses the first recording with the role `original`. If there is none, it uses the first recording in the list.
+The first recording in `recordings` is the default. A reader uses it first, and a writer puts the recording it wants
+used first at the start of the list. There is no separate field for this.
 
 ### Timeline
 
@@ -340,8 +339,8 @@ together.
   linked to the track being practiced. A separate `backing` recording is then optional.
 - **A stem that is not aligned with its parent.** Do not use `stemOf` for it. Give it `role: "stem"` and `stem`, and set
   `syncFrom` to the mix with a `syncOffsetMs` (section 9).
-- **Stems with no mix.** Suppose the file has stems but no recording that they were split from, and `defaultRecording`
-  does not name one. Then the default is all of those stems played together.
+- **Stems with no mix.** Suppose the file has stems but no recording that they were split from, and the first
+  recording is one of those stems. Then the default is all of those stems played together.
 - The stems of one split share one timeline and one duration.
 
 ## 9. Sync

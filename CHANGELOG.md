@@ -2,6 +2,11 @@
 
 ## Version 1
 
+- Clarified the difference between a beat file and sync (section 7, "Beat file"; section 9). Added a table that compares
+  them and says what a reader can offer for each combination of the two, and when a beat file matters most (scores with
+  no beat structure of their own, and recordings with no synced score). The Playback profile now lists beat files. No
+  change to the format.
+
 - Added `without` to a recording (section 8, "Backing tracks and stems"): the ids of the stems whose parts the recording's
   audio lacks. A reader MAY play the recording together with any of those stems, so a backing track that lacks two
   guitar parts can be played with one of them added back, with no full mix in the file. A listed stem must be time-aligned

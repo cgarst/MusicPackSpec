@@ -49,7 +49,7 @@ supports. A writer SHOULD target the smallest profile that can hold its data.
 | Profile | Covers | Sections |
 |---|---|---|
 | **Core** | Container, manifest, song metadata, the score | 3 to 6 |
-| **Playback** | Core, plus recordings and sync points | 7, 9 |
+| **Playback** | Core, plus recordings, sync points and beat files | 7, 9 |
 | **Stems** | Playback, plus stems | 8 |
 
 A Core reader ignores `recordings` and sync files. A Playback reader plays stem recordings as ordinary recordings.
@@ -435,6 +435,34 @@ recording only, so it names no score and has no anchor type. It is not sync (sec
 and a grid measured from the audio can all be written as one. The recording's `beats` field names it. Its JSON Schema is
 `schema/beats.schema.json`.
 
+**Beats and sync answer different questions.** A beat file says *when the beats of the recording are*. A sync file says
+*where in the score the recording is*. Neither replaces the other, and a file can have either, both, or neither.
+
+| | Beat file (section 7) | Sync file (section 9) |
+|---|---|---|
+| Describes | The recording alone | One score against one recording |
+| Count | One for each recording | One for each recording and score |
+| Depends on the score format | No | Yes (the anchor type) |
+| Answers | When is each beat, which beats are downbeats, where do sections start | Where is the playhead in the score at this time |
+| Moves the score cursor, turns pages | No | Yes |
+| Gives a metronome, count-in, beat-snapped loops, section loops | Yes | No |
+| Gives a bar number | Never | For `bar` anchors |
+| Needs a score | No | Yes |
+
+What a reader can offer, by what the file holds:
+
+| The file holds | The reader can offer |
+|---|---|
+| Neither | The score and the recording side by side, with no cursor |
+| Sync only | A cursor in the score. A metronome or count-in only from the score's own beats (a score with a beat structure, such as Guitar Pro or MusicXML), placed through the sync points. `pdf` and `text` scores have none. |
+| Beats only | A metronome, count-in, beat counter, beat-snapped loops and section loops that follow the recording, for any score format or none. No score cursor. |
+| Both | All of the above. |
+
+A beat file matters most for a recording whose score has no beat structure of its own (`pdf`, `txt`, `abc`, and `midi`
+without bars) and for a recording that no score is synced to. For a score that does have one, the score and its sync
+points already give a reader a click list, so the beat file adds the measured downbeats and tempo, the count-in, and
+the named sections. A beat file is never required. A writer that did not measure or receive the beats leaves it out.
+
 ```json
 {
   "version": 1,
@@ -533,7 +561,9 @@ together.
 
 ## 9. Sync
 
-A sync file aligns one score to one recording. It is a JSON file under `sync/` (schema: `schema/sync.schema.json`). The
+A sync file aligns one score to one recording. It is a JSON file under `sync/` (schema: `schema/sync.schema.json`). It is
+not a beat grid: the beats and sections of a recording, which do not depend on any score, are a beat file (section 7,
+"Beat file"). The
 recording's `sync` field refers to it, under the `id` of the score:
 
 ```json

@@ -52,9 +52,18 @@ def mark_keywords(line: str) -> str:
         for p in parts)
 
 
+def bold_code(line: str) -> str:
+    """Bikeshed leaves **`code`.** unrendered; emit that form as HTML."""
+    return re.sub(
+        r"\*\*([^*]*`[^*]*)\*\*",
+        lambda m: "<strong>%s</strong>" % re.sub(
+            r"`([^`]*)`", r"<code>\1</code>", m.group(1)),
+        line)
+
+
 def link_sections(line: str) -> str:
     """'section 6.1' / 'Section 9' -> a link to that section's heading id."""
-    return mark_keywords(_link_sections(line))
+    return mark_keywords(_link_sections(bold_code(line)))
 
 
 def _link_sections(line: str) -> str:
@@ -65,6 +74,31 @@ def _link_sections(line: str) -> str:
             m.group(2), "-" + m.group(3) if m.group(3) else ""),
         line,
     )
+
+
+def inline_html(text: str) -> str:
+    """Inline markdown (code spans, bold) to HTML for table cells."""
+    parts = re.split(r"(`[^`]*`)", text)
+    out = []
+    for p in parts:
+        if p.startswith("`") and p.endswith("`") and len(p) > 1:
+            out.append("<code>%s</code>" % p[1:-1].replace("&", "&amp;")
+                       .replace("<", "&lt;").replace(">", "&gt;"))
+        else:
+            p = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", p)
+            out.append(mark_keywords(_link_sections(p)))
+    return "".join(out)
+
+
+def table_html(rows: list) -> str:
+    """Bikeshed has no markdown tables; emit HTML for a pipe table."""
+    cells = lambda r: [c.strip() for c in r.strip().strip("|").split("|")]
+    head, body = cells(rows[0]), [cells(r) for r in rows[2:]]
+    h = "<table class=\"data\">\n<thead><tr>%s</tr></thead>\n<tbody>\n" % "".join(
+        "<th>%s</th>" % inline_html(c) for c in head)
+    for r in body:
+        h += "<tr>%s</tr>\n" % "".join("<td>%s</td>" % inline_html(c) for c in r)
+    return h + "</tbody>\n</table>\n"
 
 
 def convert(src: str) -> str:
@@ -81,7 +115,18 @@ def convert(src: str) -> str:
     out += [c + "\n" for c in conventions]
 
     in_code = False
-    for line in lines[first_num:]:
+    body = lines[first_num:]
+    i = -1
+    while i + 1 < len(body):
+        i += 1
+        line = body[i]
+        if not in_code and line.startswith("|"):
+            j = i
+            while j < len(body) and body[j].startswith("|"):
+                j += 1
+            out.append(table_html(body[i:j]))
+            i = j - 1
+            continue
         if line.startswith("```"):
             in_code = not in_code
             out.append(line)

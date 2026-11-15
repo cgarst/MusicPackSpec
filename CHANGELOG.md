@@ -2,6 +2,10 @@
 
 ## Version 1
 
+- Renamed "tab" to "score" throughout. The manifest field `tab` is now `score`, the archive directory `tab/` is now
+  `score/`, and the reference code uses `score`, `externalScore` and `scoreEntry`. The one remaining use of "tab" is
+  "ASCII tab", the plain-text notation.
+
 - Removed the "Open questions" section and settled each one. Interpolation between anchors stays optional. The tab stays
   required. `stem.track` stays a single index (a stem that mixes tracks has none). Bar and track indices are stable
   because the tab file is stored untouched and pinned by `sha256`.

@@ -15,15 +15,15 @@ export async function sha256(bytes) {
 
 /**
  * Opens a bundle from a ByteSource. Throws MpakError for a bundle a reader must reject.
- * Reads the end of the archive, the central directory, the manifest, the tab and the sync files, and no audio.
+ * Reads the end of the archive, the central directory, the manifest, the score and the sync files, and no audio.
  * Hash mismatches are warnings, not errors (SPEC section 12).
  *
- * Returns { manifest, entries, warnings, tab, sync(recId), defaultRecording(), file(path, maxSize), stream(path), range(path) }:
- *   tab        the tab file's bytes (or null when tab.externalPath is used and no externalTab was provided/resolved)
+ * Returns { manifest, entries, warnings, score, sync(recId), defaultRecording(), file(path, maxSize), stream(path), range(path) }:
+ *   score        the score file's bytes (or null when score.externalPath is used and no externalScore was provided/resolved)
  *   sync(id)   the recording's sync points resolved on its own timeline (section 9), or null
  *   file(path) one entry read whole; stream(path) one entry as chunks; range(path) a Stored entry's {start, end} in the archive
  */
-export async function openMpak(source, { limits = LIMITS, hash = sha256, externalTab } = {}) {
+export async function openMpak(source, { limits = LIMITS, hash = sha256, externalScore } = {}) {
   const entries = await readDirectory(source, limits);
   const byName = new Map(entries.map((e) => [e.name, e]));
   const me = byName.get('manifest.json');
@@ -41,15 +41,15 @@ export async function openMpak(source, { limits = LIMITS, hash = sha256, externa
   const file = (p, maxSize = Infinity) => readEntry(source, need(p), { maxSize, limits });
   const stream = (p) => entryStream(source, need(p), { limits });
   const range = (p) => entryRange(need(p));
-  let tab = null;
-  if (manifest.tab.path) {
-    tab = await file(manifest.tab.path);
-    if (await hash(tab) !== manifest.tab.sha256) warnings.push(`tab sha256 mismatch: ${manifest.tab.path}`);
+  let score = null;
+  if (manifest.score.path) {
+    score = await file(manifest.score.path);
+    if (await hash(score) !== manifest.score.sha256) warnings.push(`score sha256 mismatch: ${manifest.score.path}`);
   } else {
-    checkEntryName(manifest.tab.externalPath);
-    if (externalTab) {
-      tab = typeof externalTab === 'function' ? await externalTab(manifest.tab.externalPath, warnings) : externalTab;
-      if (tab && await hash(tab) !== manifest.tab.sha256) warnings.push(`tab sha256 mismatch: ${manifest.tab.externalPath}`);
+    checkEntryName(manifest.score.externalPath);
+    if (externalScore) {
+      score = typeof externalScore === 'function' ? await externalScore(manifest.score.externalPath, warnings) : externalScore;
+      if (score && await hash(score) !== manifest.score.sha256) warnings.push(`score sha256 mismatch: ${manifest.score.externalPath}`);
     }
   }
   const syncs = new Map();
@@ -58,13 +58,13 @@ export async function openMpak(source, { limits = LIMITS, hash = sha256, externa
       if (!byName.has(r.sync)) { warnings.push(`${r.id}: missing sync file ${r.sync}`); continue; }
       let s;
       try { s = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await file(r.sync, limits.maxSync))); } catch (e) { warnings.push(`${r.sync}: ${e.message}`); continue; }
-      const se = validateSync(s, manifest.tab.format);
+      const se = validateSync(s, manifest.score.format);
       if (se.length) { warnings.push(`${r.sync}: ${se.join('; ')}`); continue; }
       if (s.recording !== r.id) { warnings.push(`${r.sync}: recording id mismatch`); continue; }
       syncs.set(r.id, s);
     }
     for (const src of r.sources || []) {
-      if (src.type === 'embedded' && manifest.tab.format !== 'gp') warnings.push(`${r.id}: embedded source on a ${manifest.tab.format} tab, skipped`);
+      if (src.type === 'embedded' && manifest.score.format !== 'gp') warnings.push(`${r.id}: embedded source on a ${manifest.score.format} score, skipped`);
       if (src.type === 'file' && !byName.has(src.path)) warnings.push(`${r.id}: missing audio file ${src.path}`);
     }
   }
@@ -86,7 +86,7 @@ export async function openMpak(source, { limits = LIMITS, hash = sha256, externa
     const recs = manifest.recordings || [];
     return recs.find((r) => r.id === manifest.defaultRecording) || recs.find((r) => r.role === 'original') || recs[0] || null;
   };
-  return { manifest, entries: entries.map((e) => e.name), warnings, tab, sync: resolveSync, defaultRecording, file, stream, range };
+  return { manifest, entries: entries.map((e) => e.name), warnings, score, sync: resolveSync, defaultRecording, file, stream, range };
 }
 
 /**
@@ -108,8 +108,8 @@ export async function verifyAudioHash(opened, src, hasher) {
 
 /**
  * Builds a bundle as parts (see zipParts), without holding the audio in memory.
- * `files` is a Map or object of archive path -> Uint8Array | { source, start?, end? } (tab, audio, sync).
- * The caller puts the tab's `format` and `sha256` in `manifest`.
+ * `files` is a Map or object of archive path -> Uint8Array | { source, start?, end? } (score, audio, sync).
+ * The caller puts the score's `format` and `sha256` in `manifest`.
  */
 export async function buildMpak(manifest, files, { zip64Threshold } = {}) {
   const errs = validateManifest(manifest);
@@ -122,8 +122,8 @@ export async function buildMpak(manifest, files, { zip64Threshold } = {}) {
   return zipParts(list, { zip64Threshold });
 }
 
-/** A tab entry for the manifest: path, format (from the extension) and sha256. */
-export async function tabEntry(path, bytes) {
+/** A score entry for the manifest: path, format (from the extension) and sha256. */
+export async function scoreEntry(path, bytes) {
   return { path, format: path.split('.').pop().toLowerCase(), sha256: await sha256(bytes) };
 }
 

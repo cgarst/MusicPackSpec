@@ -4,7 +4,7 @@
   "title": "Music Pack manifest, version 1",
   "description": "manifest.json inside a .mpak archive. Unknown fields are allowed and ignored by readers.",
   "type": "object",
-  "required": ["format", "version", "tab"],
+  "required": ["format", "version", "score"],
   "properties": {
     "format": { "const": "mpak" },
     "version": { "const": 1 },
@@ -18,7 +18,7 @@
       }
     },
     "song": { "$ref": "#/$defs/song" },
-    "tab": { "$ref": "#/$defs/tab" },
+    "score": { "$ref": "#/$defs/score" },
     "recordings": {
       "type": "array",
       "items": { "$ref": "#/$defs/recording" }
@@ -65,7 +65,7 @@
         }
       }
     },
-    "tab": {
+    "score": {
       "type": "object",
       "required": ["format", "sha256"],
       "properties": {

@@ -66,13 +66,13 @@ test('a misaligned stem uses syncFrom with an offset', async () => {
 });
 
 // --- embedded source -------------------------------------------------------------------------------------------
-test('an embedded source on a gp tab is accepted; on another tab format it is a warning', async () => {
-  const gp = { ...await goodManifest(), tab: { path: 'tab/a.txt', format: 'gp', sha256: (await goodManifest()).tab.sha256 }, recordings: [{ id: 'a', role: 'original', sources: [{ type: 'embedded' }] }] };
+test('an embedded source on a gp score is accepted; on another score format it is a warning', async () => {
+  const gp = { ...await goodManifest(), score: { path: 'score/a.txt', format: 'gp', sha256: (await goodManifest()).score.sha256 }, recordings: [{ id: 'a', role: 'original', sources: [{ type: 'embedded' }] }] };
   const b = await base();
   const make = async (m) => openMpak(bytesSource(await concatParts((await zipParts([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]])).parts)));
   assert.deepEqual((await make(gp)).warnings, []);
-  const txt = { ...gp, tab: { ...gp.tab, format: 'txt' } };
-  assert.match((await make(txt)).warnings[0], /embedded source on a txt tab/);
+  const txt = { ...gp, score: { ...gp.score, format: 'txt' } };
+  assert.match((await make(txt)).warnings[0], /embedded source on a txt score/);
 });
 test('two embedded sources on one recording are refused', async () => {
   const m = { ...await goodManifest(), recordings: [{ id: 'a', role: 'original', sources: [{ type: 'embedded', id: 'e1' }, { type: 'embedded', id: 'e2' }] }] };

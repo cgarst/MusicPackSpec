@@ -1,10 +1,9 @@
 {
   "format": "mpak",
   "version": 1,
-  "tab": {
-    "path": "tab/book.pdf",
-    "externalPath": "book.pdf",
-    "format": "pdf",
+  "score": {
+    "externalPath": "song.gp5",
+    "format": "gp5",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   }
 }

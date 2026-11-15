@@ -5,8 +5,8 @@
     "title": "Example Song",
     "artist": "Example Artist"
   },
-  "tab": {
-    "path": "tab/example.gp",
+  "score": {
+    "path": "score/example.gp",
     "format": "gp",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   },

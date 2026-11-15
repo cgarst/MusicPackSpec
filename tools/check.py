@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validates the examples (must pass) and conformance/invalid (must fail) against the schemas, and checks the rules a
-JSON Schema cannot express: unique ids, references, strictly increasing sync times, anchor type matching the tab.
+JSON Schema cannot express: unique ids, references, strictly increasing sync times, anchor type matching the score.
 
 Usage: python3 tools/check.py        (needs the `jsonschema` package)
 """
@@ -20,13 +20,13 @@ def schema_errors(validator, doc):
 
 
 def rule_errors_manifest(m):
-    errs, recs, t = [], m.get("recordings", []), m.get("tab", {})
+    errs, recs, t = [], m.get("recordings", []), m.get("score", {})
     if "startPage" in t and "endPage" in t and t["endPage"] < t["startPage"]:
-        errs.append("tab.endPage must be >= tab.startPage")
+        errs.append("score.endPage must be >= score.startPage")
     if "pages" in t and "startPage" in t and t["startPage"] > t["pages"]:
-        errs.append("tab.startPage exceeds tab.pages")
+        errs.append("score.startPage exceeds score.pages")
     if "pages" in t and "endPage" in t and t["endPage"] > t["pages"]:
-        errs.append("tab.endPage exceeds tab.pages")
+        errs.append("score.endPage exceeds score.pages")
     ids = [r["id"] for r in recs]
     if len(ids) != len(set(ids)):
         errs.append("duplicate recording ids")
@@ -43,13 +43,13 @@ def rule_errors_manifest(m):
     return errs
 
 
-def rule_errors_sync(s, tab_format=None):
+def rule_errors_sync(s, score_format=None):
     errs = []
     t = [p["timeMs"] for p in s["points"]]
     if any(b <= a for a, b in zip(t, t[1:])):
         errs.append("timeMs not strictly increasing")
-    if tab_format and ANCHOR[tab_format] != s["anchorType"]:
-        errs.append(f"anchorType {s['anchorType']} does not match tab format {tab_format}")
+    if score_format and ANCHOR[score_format] != s["anchorType"]:
+        errs.append(f"anchorType {s['anchorType']} does not match score format {score_format}")
     return errs
 
 
@@ -65,7 +65,7 @@ for mp in sorted(glob.glob(f"{ROOT}/examples/*/manifest.json")):
                 errs.append(f"{r['id']}: missing {r['sync']}")
                 continue
             s = load(sp)
-            errs += [f"{r['sync']}: {e}" for e in schema_errors(sync_v, s) + rule_errors_sync(s, m["tab"]["format"])]
+            errs += [f"{r['sync']}: {e}" for e in schema_errors(sync_v, s) + rule_errors_sync(s, m["score"]["format"])]
             if s.get("recording") != r["id"]:
                 errs.append(f"{r['sync']}: recording id mismatch")
     print(("FAIL " if errs else "ok   ") + os.path.relpath(mp, ROOT))

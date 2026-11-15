@@ -2,8 +2,8 @@
 
 **Version 1.** Changes within version 1 only add optional things. A change that breaks existing files is a new version, and the manifest `version` field says which one a file uses.
 
-A Music Pack file (extension `.mpak`) packages one song for practice. It holds the tab, the recordings that go with
-it (original, backing track, stems), and the sync points that align the tab to each recording. The file is a ZIP archive
+A Music Pack file (extension `.mpak`) packages one song for practice. It holds the score, the recordings that go with
+it (original, backing track, stems), and the sync points that align the score to each recording. The file is a ZIP archive
 of ordinary files, so any language can read and write it.
 
 The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are used as defined in RFC 2119.
@@ -15,7 +15,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are used as defined in
 3. [Container](#3-container)
 4. [Manifest](#4-manifest)
 5. [Song metadata](#5-song-metadata)
-6. [Tab](#6-tab)
+6. [Score](#6-score)
 7. [Recordings](#7-recordings)
 8. [Stems](#8-stems)
 9. [Sync](#9-sync)
@@ -29,16 +29,16 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are used as defined in
 
 Goals:
 
-- One file carries everything needed to practice a song: tab, recordings, sync, and tuning.
-- Any tab reader can adopt all of it or only the part it needs (see Profiles).
-- A file written by a simple script (a title and a tab) is as valid as one written by a full application.
+- One file carries everything needed to practice a song: score, recordings, sync, and tuning.
+- Any score reader can adopt all of it or only the part it needs (see Profiles).
+- A file written by a simple script (a title and a score) is as valid as one written by a full application.
 - Another tool can improve a file later, for example by adding audio files, without breaking it.
 
 Non-goals:
 
-- It does not define a new tab or notation format. The tab inside is an existing file, stored untouched.
+- It does not define a new notation format. The score inside is an existing file, stored untouched.
 - It does not define playback engines, user interfaces, or library matching.
-- It does not put several tabs in one file. A song with several tabs is several files (section 6.1).
+- It does not put several scores in one file. A song with several scores is several files (section 6.1).
 - It does not require any network service. A reader MUST be able to open a file without network access.
 
 ## 2. Profiles
@@ -48,7 +48,7 @@ supports. A writer SHOULD target the smallest profile that holds its data.
 
 | Profile | Covers | Sections |
 |---|---|---|
-| **Core** | Container, manifest, song metadata, the tab | 3 to 6 |
+| **Core** | Container, manifest, song metadata, the score | 3 to 6 |
 | **Playback** | Core, plus recordings and sync points | 7, 9 |
 | **Stems** | Playback, plus stems | 8 |
 
@@ -61,7 +61,7 @@ layout:
 
 ```
 manifest.json     the manifest (section 4)
-tab/<name>        the tab file, byte for byte as supplied (omitted when tab.externalPath is used; section 6)
+score/<name>        the score file, byte for byte as supplied (omitted when score.externalPath is used; section 6)
 audio/<name>      optional audio files
 sync/<name>.json  optional sync files (section 9)
 ```
@@ -88,7 +88,7 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 1. A writer MUST use ZIP64 where the ZIP format requires it: an entry or offset of 4 GiB or more, or 65535 or more
    entries. A reader MUST read ZIP64.
 2. A reader MUST be able to open a file without reading its audio. Opening needs only the end of the archive, the
-   central directory, the manifest, the tab and the sync files. The reader SHOULD read these by
+   central directory, the manifest, the score and the sync files. The reader SHOULD read these by
    random access, not load the whole archive into memory.
 3. A reader MUST take sizes, offsets and checksums from the central directory, and MUST ignore any different value in a
    local header. A writer MAY use data descriptors.
@@ -98,7 +98,7 @@ A file can hold hours of audio, so this specification sets no size limit of its 
    trust the sizes in the archive for that.
 6. A reader MUST NOT hash audio in order to open a file. It MAY check a `sha256` of an audio source later, on demand or in
    the background.
-7. The tab, the manifest and the sync files are read whole. A reader MAY refuse a tab larger than 256 MiB.
+7. The score, the manifest and the sync files are read whole. A reader MAY refuse a score larger than 256 MiB.
 
 ## 4. Manifest
 
@@ -111,7 +111,7 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 | `createdAt` | string, date-time | no | When the file was created. |
 | `generator` | `{ name, version? }` | no | The software that wrote the file. |
 | `song` | object | no | Section 5. May be empty or absent. |
-| `tab` | object | yes | Section 6. |
+| `score` | object | yes | Section 6. |
 | `recordings` | array | no | Section 7. |
 | `defaultRecording` | string | no | Id of the recording to use first. |
 
@@ -154,41 +154,41 @@ Defined keys: `musicbrainz` (object with optional `recording`, `artist`, `releas
 (string). Other keys are allowed.
 
 If `title` or `artist` is missing and a reader needs a display name, the reader SHOULD use the first of these that
-exists: metadata inside the tab file, the tab's file name, the name of the `.mpak` file.
+exists: metadata inside the score file, the score's file name, the name of the `.mpak` file.
 
-## 6. Tab
+## 6. Score
 
-`tab` describes the one tab in the file.
+`score` describes the one score in the file.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `path` | string | unless `externalPath` | Archive path of the tab file, under `tab/`. |
+| `path` | string | unless `externalPath` | Archive path of the score file, under `score/`. |
 | `externalPath` | string | unless `path` | Relative path to a shared PDF file outside the archive (`pdf` only). |
 | `format` | enum | yes | `gp3`, `gp4`, `gp5`, `gp` (Guitar Pro 7 and later), `gpx`, `musicxml` (uncompressed MusicXML), `mxl` (compressed MusicXML), `mscz` (MuseScore), `midi` (Standard MIDI File), `abc` (ABC notation), `pdf`, `txt`. |
-| `sha256` | string | yes | Lowercase hex SHA-256 of the tab file's bytes. |
+| `sha256` | string | yes | Lowercase hex SHA-256 of the score file's bytes. |
 | `name` | string | no | The original file name, for display. |
 | `pages` | integer | no | Page count of the PDF file, for `pdf`. |
 | `startPage` | integer | no | 1-based first page of this song inside a multi-song PDF (`pdf` only). |
 | `endPage` | integer | no | 1-based last page of this song inside a multi-song PDF (`pdf` only, `>= startPage`, `<= pages`). |
 | `tuning` | string array | no | Tuning, lowest string first, as pitch names with or without octave numbers, for example `["E2","A2","D3","G3","B3","E4"]` or `["D","A","D","G","B","E"]`. |
 
-- The tab is required. A file with only recordings and sync is not valid, because sync points need a tab to anchor to.
-- `tab` MUST have either `path` or `externalPath`, and MUST NOT have both. `externalPath` is allowed only when `format`
+- The score is required. A file with only recordings and sync is not valid, because sync points need a score to anchor to.
+- `score` MUST have either `path` or `externalPath`, and MUST NOT have both. `externalPath` is allowed only when `format`
   is `pdf`.
-- Bar and track indices count what the stored tab file lists, and the file is stored untouched and pinned by `sha256`,
-  so a later version of the tab's format cannot change what an index means. A reader reads the file with the rules of
+- Bar and track indices count what the stored score file lists, and the file is stored untouched and pinned by `sha256`,
+  so a later version of the score's format cannot change what an index means. A reader reads the file with the rules of
   the format version that wrote it (`gp`, `mscz`).
-- A writer MUST store an embedded tab file (`path`) exactly as supplied and MUST NOT convert or re-encode it. The one
-  exception is a `txt` or `abc` tab, which MUST be UTF-8. A writer converts any other encoding and records the hash of the
+- A writer MUST store an embedded score file (`path`) exactly as supplied and MUST NOT convert or re-encode it. The one
+  exception is a `txt` or `abc` score, which MUST be UTF-8. A writer converts any other encoding and records the hash of the
   converted file.
-- `sha256` identifies the tab file that the sync anchors and stem track links were written against (for an external PDF,
+- `sha256` identifies the score file that the sync anchors and stem track links were written against (for an external PDF,
   the whole PDF file). If a reader finds a different hash, it SHOULD tell the user that sync points may be wrong. It
   MUST NOT silently apply track links (section 8).
-- `tuning` is for tabs that do not carry their own, mainly `pdf` and `txt`. For score formats, the tuning in the file
+- `tuning` is for scores that do not carry their own, mainly `pdf` and `txt`. For formats that carry a tuning, the tuning in the file
   wins. A writer SHOULD omit `tuning` for those formats or make it agree with the file.
 - The format decides the anchor type that sync uses (section 9): `gp3`, `gp4`, `gp5`, `gp`, `gpx`, `musicxml`, `mxl`,
   and `mscz` use `bar`; `midi` uses `tick`; `pdf` uses `pdf`; `txt` and `abc` use `text`.
-- The tab can be a score for any instrument. `tuning` and the Guitar Pro formats are a guitar-oriented part of the list,
+- The score can be for any instrument. `tuning` and the Guitar Pro formats are a guitar-oriented part of the list,
   not a limit on what a file can hold.
 
 ### 6.1 Multi-song PDFs (`startPage`, `endPage`, and `externalPath`)
@@ -199,35 +199,35 @@ When both are present, `endPage` MUST be greater than or equal to `startPage`. W
 `startPage` and `endPage` MUST be at most `pages`. When only `startPage` is set, the song runs from `startPage` to the
 end of the PDF; when only `endPage` is set, it runs from page 1 to `endPage`.
 
-The PDF itself may either be stored inside the archive (`path`, under `tab/`) or left outside the archive and referenced
+The PDF itself may either be stored inside the archive (`path`, under `score/`) or left outside the archive and referenced
 by `externalPath`, so that several `.mpak` files for songs from the same book can share one copy of the PDF instead of
 duplicating it in every archive:
 
 - `externalPath` follows the same safe relative path rules as archive entry names (section 3): UTF-8, `/` separated, no
   leading `/`, no backslash, no `.`, `..`, or empty segment, and no control characters.
 - When a reader opens a `.mpak` file from a directory on disk, it resolves `externalPath` inside that directory (and MUST
-  reject any path that escapes it; section 12). A reader with its own library MAY also locate the PDF by `tab.sha256`, or
+  reject any path that escapes it; section 12). A reader with its own library MAY also locate the PDF by `score.sha256`, or
   ask the user for the file when it is missing.
-- `tab.sha256` is still required when `externalPath` is used, and is the SHA-256 of the whole PDF file.
+- `score.sha256` is still required when `externalPath` is used, and is the SHA-256 of the whole PDF file.
 
-### 6.2 One tab per file, and variations
+### 6.2 One score per file, and variations
 
-A file holds exactly one tab. A song with several tabs, for example a Guitar Pro file and a PDF of the same song, or two
+A file holds exactly one score. A song with several scores, for example a Guitar Pro file and a PDF of the same song, or two
 arrangements, is several `.mpak` files. Each one is a **variation** of the song. This specification does not define a
 container for a set of variations.
 
 A reader MAY import a file as another variation of a song that it already has. How it finds that song (by `song.ids`, by
 `title` and `artist`, or by asking the user) is outside this specification (section 10). When it does:
 
-1. The file's tab, recordings and sync stay together as one variation. Sync points belong to the tab that `tab.sha256`
+1. The file's score, recordings and sync stay together as one variation. Sync points belong to the score that `score.sha256`
    identifies and MUST NOT be applied to another variation, even of the same song, because their anchors are written
-   against different tab bytes and may have different anchor types.
-2. The reader MUST NOT overwrite or remove the sync points, recordings or tab of a variation it already has, unless the
-   user asks it to. A file whose `tab.sha256` matches an existing variation is the same variation: the reader SHOULD NOT
+   against different score bytes and may have different anchor types.
+2. The reader MUST NOT overwrite or remove the sync points, recordings or score of a variation it already has, unless the
+   user asks it to. A file whose `score.sha256` matches an existing variation is the same variation: the reader SHOULD NOT
    add a duplicate, and MAY offer to add the file's recordings and sync points to it.
 3. Variations MAY share a recording. Two recordings with the same `youtube` `videoId`, or the same audio `sha256`, are the
    same recording, and a reader MAY store it once. Sync is still kept per variation.
-4. A file holds one variation, so an export of a song holds the data of one tab. The recordings, sync points and tab of the
+4. A file holds one variation, so an export of a song holds the data of one score. The recordings, sync points and score of the
    song's other variations are not in it. A tool that exports several variations writes one file for each, and SHOULD put
    the same `song` metadata in each, so that a reader can match them.
 
@@ -277,22 +277,22 @@ Every source has a `type`. It can also have these optional fields:
 | `file` | `path` (required, under `audio/`), `mime` | An audio file in the archive. |
 | `youtube` | `videoId` (required, 11 characters) | A YouTube video, played with the service's own player. |
 | `url` | `url` (required, `http` or `https`), `mime` | Audio at a web address. |
-| `embedded` | none | Audio carried inside the tab file itself, for example the audio track of a Guitar Pro 7 or later (`gp`) file. |
+| `embedded` | none | Audio carried inside the score file itself, for example the audio track of a Guitar Pro 7 or later (`gp`) file. |
 | `external` | none | A recording that exists but has no playable source here. `sha256` and `durationMs` help identify it. |
 
-An `embedded` source has no `path`: the bytes are in the tab file that `tab.path` names, and the reader extracts them
-with its own code for that tab format. Rules:
+An `embedded` source has no `path`: the bytes are in the score file that `score.path` names, and the reader extracts them
+with its own code for that score format. Rules:
 
-- It is defined for the tab format `gp`. For any other tab format a reader skips it, and a writer MUST NOT write it.
-- It is valid only for the exact tab file that `tab.sha256` identifies. If the hash does not match, a reader MUST skip
+- It is defined for the score format `gp`. For any other score format a reader skips it, and a writer MUST NOT write it.
+- It is valid only for the exact score file that `score.sha256` identifies. If the hash does not match, a reader MUST skip
   the source.
 - `offsetMs` places the embedded audio on the recording's timeline, like any other source. When the recording has sync
-  points (section 9), they apply instead of the tab's own sync points. When the recording has no sync points in the
+  points (section 9), they apply instead of the score's own sync points. When the recording has no sync points in the
   `.mpak` file, a reader MAY fall back to the sync points stored inside the `gp` file.
 - A tool MAY extract the audio into `audio/<name>` and prepend a `file` source to the same recording (or place it before
   the `embedded` source), with `derivedFrom` set to the embedded source's `id` (section 11). The `embedded` source stays,
   so the file still round trips.
-- A recording can have only one `embedded` source, because a tab file has one audio track.
+- A recording can have only one `embedded` source, because a score file has one audio track.
 
 Other types are allowed. A source of any type MAY appear on any recording, including a stem.
 
@@ -322,7 +322,7 @@ together.
 |---|---|
 | `stemOf` | Id of the recording this stem was split from. Only with `role: "stem"`. The stem's audio is time-aligned with that recording (offset 0). Unless the stem has its own `sync`, it uses that recording's sync points. |
 | `stem.instrument` | Open vocabulary. Suggested: `guitar`, `bass`, `drums`, `vocals`, `keys`, `other`. |
-| `stem.track` | 0-based index into the tab's track list (score formats only). |
+| `stem.track` | 0-based index into the score's track list (formats that list tracks only). |
 | `stem.trackName` | Optional. The name of that track, used as a check. |
 | `stemsComplete` | On the recording that the stems were split from: `true` when the stems add up to the whole mix. |
 
@@ -331,11 +331,11 @@ together.
 - **One track per stem.** `stem.track` is a single index. A stem that mixes two tracks has no `track`, and a reader
   mutes nothing for it. A writer that wants per-track muting for those tracks splits them into separate stems.
 - **A split of each guitar track.** Use several stems with `instrument: "guitar"`, each with a different `track`.
-- **Track links.** `stem.track` is the index of the track in the order that the tab file lists its tracks. If
+- **Track links.** `stem.track` is the index of the track in the order that the score file lists its tracks. If
   `stem.trackName` is present and the track at that index has a different name, the reader looks for exactly one track
   with that name and uses it. If it finds none or several, it ignores the link and mutes nothing, because a wrong mute is
-  worse than no mute. A reader MUST also ignore track links when the tab's `sha256` does not match the tab file, and
-  when the tab format is `pdf`, `txt`, or `abc`.
+  worse than no mute. A reader MUST also ignore track links when the score's `sha256` does not match the score file, and
+  when the score format is `pdf`, `txt`, or `abc`.
 - **Building a backing mix.** If the mix has `stemsComplete: true`, a reader MAY play all its stems except the ones
   linked to the track being practiced. A separate `backing` recording is then optional.
 - **A stem that is not aligned with its parent.** Do not use `stemOf` for it. Give it `role: "stem"` and `stem`, and set
@@ -346,7 +346,7 @@ together.
 
 ## 9. Sync
 
-A sync file aligns the tab to one recording. It is a JSON file under `sync/` (schema: `schema/sync.schema.json`), and the
+A sync file aligns the score to one recording. It is a JSON file under `sync/` (schema: `schema/sync.schema.json`), and the
 recording's `sync` field refers to it.
 
 ```json
@@ -363,14 +363,14 @@ recording's `sync` field refers to it.
 ```
 
 - `recording` is the id of the recording that the points belong to.
-- `anchorType` MUST match the tab format (section 6).
+- `anchorType` MUST match the score format (section 6).
 - A point MAY carry `x-` fields. A reader ignores any field of a point that it does not know.
 - `points` MUST be sorted by `timeMs`, strictly increasing. Each point has:
   - `timeMs`: milliseconds on the recording's timeline, 0 or more.
   - `source` (optional): `tap`, `manual`, or `auto`. The default is `manual`.
   - `id` (optional).
   - the anchor fields for the anchor type, described below.
-- A recording with no sync file, no `syncFrom`, and no `stemOf` has no sync data. That is valid, and the tab and recording
+- A recording with no sync file, no `syncFrom`, and no `stemOf` has no sync data. That is valid, and the score and recording
   still travel together.
 - **Resolution.** To find the sync points of recording R:
   1. If R has its own `sync` file, use it. Its points are already on R's timeline.
@@ -392,7 +392,7 @@ recording's `sync` field refers to it.
   If exact timing matters, a writer SHOULD give the recording its own `sync` file.
 - Before the first point and after the last, a reader holds the first or last position. It MAY extrapolate instead.
 
-### 9.1 Anchor type `bar` (Guitar Pro, MusicXML, and MuseScore tabs)
+### 9.1 Anchor type `bar` (Guitar Pro, MusicXML, and MuseScore scores)
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -415,7 +415,7 @@ The master bar list of each format is:
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `page` | integer ≥ 1 | yes | 1-based page number in the PDF file (when `tab.startPage` and `tab.endPage` are set, `page` is between `startPage` and `endPage` inclusive, not renumbered from 1). |
+| `page` | integer ≥ 1 | yes | 1-based page number in the PDF file (when `score.startPage` and `score.endPage` are set, `page` is between `startPage` and `endPage` inclusive, not renumbered from 1). |
 | `x` | number, 0 to 1 | with `y` | Horizontal position, as a fraction of the page width. |
 | `y` | number, 0 to 1 | with `x` | Vertical position, as a fraction of the page height. |
 
@@ -426,14 +426,14 @@ The master bar list of each format is:
 - A position anchor marks where the playhead is, typically at the start of a bar or of a line of music.
 - A writer that cannot tell where on the page the playhead is MUST write a page anchor, and MUST NOT make up `x` and `y`.
 - A file MAY mix page anchors and position anchors.
-- **Order and repeats.** Points are ordered by `timeMs`, not by position. A point may name an earlier place in the tab than
+- **Order and repeats.** Points are ordered by `timeMs`, not by position. A point may name an earlier place in the score than
   the point before it. That is a backward jump, and it means the music repeats: a repeat sign, a D.S., a second verse on the
   first page. A backward jump is not an error. Places are compared in reading order: page, then `y`, then `x`. A page
   anchor counts as the top of its page.
 - **Between points.** A reader moves from one point to the next as follows. If the next point is a backward jump, or is on
   another page, the reader holds the earlier point until the next one. Otherwise, if both points are position anchors on
   the same page, the reader MAY interpolate. In every other case it holds.
-- A writer SHOULD set `tab.pages`. Anchors are valid only for the exact file that `tab.sha256` identifies.
+- A writer SHOULD set `score.pages`. Anchors are valid only for the exact file that `score.sha256` identifies.
 
 ### 9.3 Anchor type `text`
 
@@ -442,7 +442,7 @@ The master bar list of each format is:
 | `line` | integer ≥ 0 | yes | 0-based line number. |
 | `col` | integer ≥ 0 | no | 0-based column, counted in Unicode code points. |
 
-- Count lines and columns on the decoded text of the tab file (`txt` or `abc`). Decode it as UTF-8, remove a leading byte order mark, and
+- Count lines and columns on the decoded text of the score file (`txt` or `abc`). Decode it as UTF-8, remove a leading byte order mark, and
   replace each CRLF and each CR with LF. Columns count Unicode code points, not UTF-16 units or bytes.
 - `line` identifies a system (for `abc`, a line of music in the source). A writer SHOULD use the line of the system's top string row. A reader SHOULD accept any line
   within a block of consecutive non-empty lines and treat it as that block.
@@ -459,7 +459,7 @@ The master bar list of each format is:
   until the next one. Otherwise, if both points are column anchors in the same block, the reader MAY interpolate. In every
   other case it holds.
 
-### 9.4 Anchor type `tick` (MIDI tabs)
+### 9.4 Anchor type `tick` (MIDI scores)
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
@@ -482,8 +482,8 @@ A reader:
 3. MUST ignore fields, entries, roles, sources and `ids` keys it does not know.
 4. MUST reject `version` greater than it supports, with a message saying the file needs a newer reader.
 5. MUST treat everything inside the archive as untrusted input (section 12).
-6. SHOULD warn when the tab's `sha256` does not match the file.
-7. SHOULD NOT fail on a missing optional part. A file with only a tab is a valid file.
+6. SHOULD warn when the score's `sha256` does not match the file.
+7. SHOULD NOT fail on a missing optional part. A file with only a score is a valid file.
 
 Library matching, merging a file into a song as another variation (section 6.2), MusicBrainz lookups, and similar enrichment are application features. They are outside this
 specification, and a reader MAY use `song.ids` for them.
@@ -495,7 +495,7 @@ A writer:
 1. MUST follow section 3.
 2. MUST write the manifest fields marked required.
 3. MUST write a valid sync file for each recording that it gives sync points to.
-4. MUST store an embedded tab file (`tab.path`) byte for byte (a `txt` or `abc` tab as UTF-8).
+4. MUST store an embedded score file (`score.path`) byte for byte (a `txt` or `abc` score as UTF-8).
 5. SHOULD write `generator`.
 6. SHOULD write audio entries Stored, and MUST use ZIP64 where section 3.1 requires it.
 7. SHOULD write a file in one pass over its audio, without holding the audio in memory.
@@ -519,8 +519,8 @@ up to the tool's author and its users (section 14).
 
 A reader MUST protect against:
 
-- **Path traversal (zip slip).** Reject entries (and `tab.externalPath`) that break the name rules in section 3. When you
-  extract an entry to disk, resolve its path inside a directory of your own choosing. When you resolve `tab.externalPath`,
+- **Path traversal (zip slip).** Reject entries (and `score.externalPath`) that break the name rules in section 3. When you
+  extract an entry to disk, resolve its path inside a directory of your own choosing. When you resolve `score.externalPath`,
   resolve it inside the directory containing the `.mpak` file. Do not use a path from the archive or manifest as it is.
 - **Decompression bombs.** Reject the archive, or stop reading, in any of these cases: an entry inflates to more than 100
   times its stored size, the manifest is over 1 MiB, a sync file is over 8 MiB, or the archive has more than 1000
@@ -545,7 +545,7 @@ A reader MUST protect against:
 
 ## 14. Copyright, patents, names
 
-- **Copyright.** A `.mpak` file can contain a tab and recordings that belong to other people. This specification grants
+- **Copyright.** A `.mpak` file can contain a score and recordings that belong to other people. This specification grants
   no right to them. Writers and distributors are responsible for having the right to include what they include. A file
   can refer to a recording (`youtube`, `url`, `external`) instead of carrying it. A writer SHOULD do that when it does
   not hold the rights to the audio.

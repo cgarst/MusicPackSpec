@@ -1,8 +1,8 @@
 {
   "format": "mpak",
   "version": 1,
-  "tab": {
-    "path": "tab/example.mid",
+  "score": {
+    "path": "score/example.mid",
     "format": "midi",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   },

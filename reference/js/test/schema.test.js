@@ -16,7 +16,7 @@ const manifests = [], syncs = [];
 for (const d of fs.readdirSync(path.join(ROOT, 'examples'), { withFileTypes: true }).filter((x) => x.isDirectory())) {
   const m = load(path.join(ROOT, 'examples', d.name, 'manifest.json'));
   manifests.push([`examples/${d.name}`, m]);
-  for (const r of m.recordings || []) if (r.sync) syncs.push([`examples/${d.name}/${r.sync}`, load(path.join(ROOT, 'examples', d.name, r.sync)), m.tab.format]);
+  for (const r of m.recordings || []) if (r.sync) syncs.push([`examples/${d.name}/${r.sync}`, load(path.join(ROOT, 'examples', d.name, r.sync)), m.score.format]);
 }
 const invalid = fs.readdirSync(path.join(ROOT, 'conformance/invalid')).filter((f) => f.endsWith('.json'));
 

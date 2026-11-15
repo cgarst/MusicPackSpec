@@ -1,8 +1,8 @@
 {
   "format": "mpak",
   "version": 1,
-  "tab": {
-    "path": "tab/../../etc/passwd",
+  "score": {
+    "path": "score/../../etc/passwd",
     "format": "gp5",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   }

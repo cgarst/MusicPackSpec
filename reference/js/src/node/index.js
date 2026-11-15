@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { openMpak, buildMpak, verifyAudioHash, concatParts, tabEntry, sha256, MpakError } from '../core/index.js';
+import { openMpak, buildMpak, verifyAudioHash, concatParts, scoreEntry, sha256, MpakError } from '../core/index.js';
 
 export * from '../core/index.js';
 
@@ -32,14 +32,14 @@ export async function fileSource(p) {
 export async function openMpakFile(p, opts = {}) {
   const source = await fileSource(p);
   const root = path.dirname(path.resolve(p));
-  const externalTab = opts.externalTab ?? (async (rel, warnings) => {
+  const externalScore = opts.externalScore ?? (async (rel, warnings) => {
     const dest = path.resolve(root, rel);
-    if (!dest.startsWith(root + path.sep)) throw new MpakError(`refusing external tab path ${rel}`);
-    if (!fs.existsSync(dest)) { warnings.push(`missing external tab file ${rel}`); return null; }
+    if (!dest.startsWith(root + path.sep)) throw new MpakError(`refusing external score path ${rel}`);
+    if (!fs.existsSync(dest)) { warnings.push(`missing external score file ${rel}`); return null; }
     return new Uint8Array(await fs.promises.readFile(dest));
   });
   try {
-    const opened = await openMpak(source, { ...opts, externalTab });
+    const opened = await openMpak(source, { ...opts, externalScore });
     return { ...opened, close: () => source.close() };
   } catch (e) { await source.close(); throw e; }
 }
@@ -77,12 +77,12 @@ export async function readDir(dir, { fixHashes = true } = {}) {
   } };
   walk(dir);
   if (fixHashes) {
-    const tp = manifest.tab.path || manifest.tab.externalPath;
-    if (tp && files.has(tp)) manifest.tab.sha256 = await sha256(files.get(tp));
+    const tp = manifest.score.path || manifest.score.externalPath;
+    if (tp && files.has(tp)) manifest.score.sha256 = await sha256(files.get(tp));
     for (const r of manifest.recordings || []) for (const s of r.sources || [])
       if (s.type === 'file' && files.has(s.path)) s.sha256 = await sha256(files.get(s.path));
   }
-  if (manifest.tab.externalPath) files.delete(manifest.tab.externalPath);
+  if (manifest.score.externalPath) files.delete(manifest.score.externalPath);
   return { manifest, files };
 }
 
@@ -94,4 +94,4 @@ export async function packDir(dir, opts) {
 
 export const packDirToBytes = async (dir, opts) => concatParts((await packDir(dir, opts)).parts);
 
-export { tabEntry };
+export { scoreEntry };

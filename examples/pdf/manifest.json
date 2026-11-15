@@ -4,8 +4,8 @@
   "song": {
     "title": "Example Song"
   },
-  "tab": {
-    "path": "tab/example.pdf",
+  "score": {
+    "path": "score/example.pdf",
     "format": "pdf",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
     "pages": 3,

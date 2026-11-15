@@ -1,8 +1,8 @@
 {
   "format": "mpak",
   "version": 2,
-  "tab": {
-    "path": "tab/a.gp5",
+  "score": {
+    "path": "score/a.gp5",
     "format": "gp5",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   }

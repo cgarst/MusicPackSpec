@@ -27,8 +27,8 @@ test('rejects absolute and backslash names', async () => {
   await rejects([...await base(), { name: 'a\\b', data: u8('x') }], /bad entry name/);
 });
 test('rejects duplicate names, also by case', async () => {
-  await rejects([...await base(), { name: 'tab/a.txt', data: u8('y') }], /duplicate/);
-  await rejects([...await base(), { name: 'TAB/A.TXT', data: u8('y') }], /duplicate/);
+  await rejects([...await base(), { name: 'score/a.txt', data: u8('y') }], /duplicate/);
+  await rejects([...await base(), { name: 'SCORE/A.TXT', data: u8('y') }], /duplicate/);
 });
 test('rejects version 2', async () => { const b = await base(); await rejects([{ name: 'manifest.json', data: u8(JSON.stringify({ ...await goodManifest(), version: 2 })) }, b[1]], /version/); });
 test('rejects manifest with BOM', async () => {
@@ -60,7 +60,7 @@ test('rejects too many entries', async () => {
 });
 test('rejects corrupted data (crc)', async () => {
   const bytes = await build(await base());
-  bytes[Buffer.from(bytes).indexOf(Buffer.from('tab/a.txt')) + 9] ^= 0xff;
+  bytes[Buffer.from(bytes).indexOf(Buffer.from('score/a.txt')) + 11] ^= 0xff;
   await assert.rejects(() => open(bytes), MpakError);
 });
 test('rejects encrypted flag', async () => {
@@ -80,7 +80,7 @@ test('rejects bytes that are not a zip', async () => {
 });
 test('hash mismatch is a warning, not an error', async () => {
   const b = await base();
-  const m = { ...await goodManifest(), tab: { ...(await goodManifest()).tab, sha256: '0'.repeat(64) } };
+  const m = { ...await goodManifest(), score: { ...(await goodManifest()).score, sha256: '0'.repeat(64) } };
   const o = await open(await build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]]));
   assert.match(o.warnings[0], /sha256 mismatch/);
 });
@@ -154,32 +154,32 @@ test('sha256 matches Node for a known value', async () => assert.equal(await sha
 
 // --- tuning, multi-song pdf, externalPath ----------------------------------------------------------------------
 test('tuning accepts pitch names with or without octaves', () => {
-  const baseM = { format: 'mpak', version: 1, tab: { path: 'tab/a.txt', format: 'txt', sha256: '0'.repeat(64) } };
-  assert.deepEqual(validateManifest({ ...baseM, tab: { ...baseM.tab, tuning: ['D', 'A', 'D', 'G', 'B', 'E'] } }), []);
-  assert.deepEqual(validateManifest({ ...baseM, tab: { ...baseM.tab, tuning: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'] } }), []);
-  assert.ok(validateManifest({ ...baseM, tab: { ...baseM.tab, tuning: ['H', 'A'] } }).length);
+  const baseM = { format: 'mpak', version: 1, score: { path: 'score/a.txt', format: 'txt', sha256: '0'.repeat(64) } };
+  assert.deepEqual(validateManifest({ ...baseM, score: { ...baseM.score, tuning: ['D', 'A', 'D', 'G', 'B', 'E'] } }), []);
+  assert.deepEqual(validateManifest({ ...baseM, score: { ...baseM.score, tuning: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'] } }), []);
+  assert.ok(validateManifest({ ...baseM, score: { ...baseM.score, tuning: ['H', 'A'] } }).length);
 });
 
 test('multi-song PDF startPage/endPage bounds are validated', () => {
-  const pdfTab = { path: 'tab/book.pdf', format: 'pdf', sha256: '0'.repeat(64), pages: 10 };
-  assert.deepEqual(validateManifest({ format: 'mpak', version: 1, tab: { ...pdfTab, startPage: 3, endPage: 7 } }), []);
-  assert.deepEqual(validateManifest({ format: 'mpak', version: 1, tab: { ...pdfTab, startPage: 5, endPage: 5 } }), []);
-  assert.ok(validateManifest({ format: 'mpak', version: 1, tab: { ...pdfTab, startPage: 6, endPage: 5 } }).length);
-  assert.ok(validateManifest({ format: 'mpak', version: 1, tab: { ...pdfTab, startPage: 11 } }).length);
-  assert.ok(validateManifest({ format: 'mpak', version: 1, tab: { ...pdfTab, endPage: 11 } }).length);
+  const pdfScore = { path: 'score/book.pdf', format: 'pdf', sha256: '0'.repeat(64), pages: 10 };
+  assert.deepEqual(validateManifest({ format: 'mpak', version: 1, score: { ...pdfScore, startPage: 3, endPage: 7 } }), []);
+  assert.deepEqual(validateManifest({ format: 'mpak', version: 1, score: { ...pdfScore, startPage: 5, endPage: 5 } }), []);
+  assert.ok(validateManifest({ format: 'mpak', version: 1, score: { ...pdfScore, startPage: 6, endPage: 5 } }).length);
+  assert.ok(validateManifest({ format: 'mpak', version: 1, score: { ...pdfScore, startPage: 11 } }).length);
+  assert.ok(validateManifest({ format: 'mpak', version: 1, score: { ...pdfScore, endPage: 11 } }).length);
 });
 
 test('externalPath opens without embedding the PDF and checks sha256 when provided', async () => {
   const pdfBytes = u8('%PDF-1.4 shared book');
-  const m = { format: 'mpak', version: 1, tab: { externalPath: 'books/jazz.pdf', format: 'pdf', sha256: await sha256(pdfBytes), startPage: 2, endPage: 4 } };
+  const m = { format: 'mpak', version: 1, score: { externalPath: 'books/jazz.pdf', format: 'pdf', sha256: await sha256(pdfBytes), startPage: 2, endPage: 4 } };
   const parts = await buildMpak(m, {});
   const archive = await concatParts(parts.parts);
   const withoutExternal = await openMpak(bytesSource(archive));
-  assert.equal(withoutExternal.tab, null);
+  assert.equal(withoutExternal.score, null);
   assert.deepEqual(withoutExternal.warnings, []);
-  const withExternal = await openMpak(bytesSource(archive), { externalTab: (rel) => (rel === 'books/jazz.pdf' ? pdfBytes : null) });
-  assert.deepEqual(withExternal.tab, pdfBytes);
+  const withExternal = await openMpak(bytesSource(archive), { externalScore: (rel) => (rel === 'books/jazz.pdf' ? pdfBytes : null) });
+  assert.deepEqual(withExternal.score, pdfBytes);
   assert.deepEqual(withExternal.warnings, []);
-  const mismatch = await openMpak(bytesSource(archive), { externalTab: u8('%PDF-1.4 wrong') });
+  const mismatch = await openMpak(bytesSource(archive), { externalScore: u8('%PDF-1.4 wrong') });
   assert.match(mismatch.warnings[0], /sha256 mismatch/);
 });

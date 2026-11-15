@@ -10,13 +10,13 @@ import { packDirToBytes, packDir, writeParts, openMpakFile, audioHashWarnings, r
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const examples = fs.readdirSync(path.join(ROOT, 'examples'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
 
-// Examples ship without tab/audio files (copyright). Stage a copy with dummy files.
+// Examples ship without score/audio files (copyright). Stage a copy with dummy files.
 function stage(name) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mpak-'));
   fs.cpSync(path.join(ROOT, 'examples', name), dir, { recursive: true });
   const m = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
   const put = (p, data) => { fs.mkdirSync(path.dirname(path.join(dir, p)), { recursive: true }); fs.writeFileSync(path.join(dir, p), data); };
-  put(m.tab.path || m.tab.externalPath, `dummy tab for ${name}\n`.repeat(50));
+  put(m.score.path || m.score.externalPath, `dummy score for ${name}\n`.repeat(50));
   for (const r of m.recordings || []) for (const s of r.sources) if (s.type === 'file') put(s.path, Buffer.alloc(4096, 7));
   return dir;
 }
@@ -27,7 +27,7 @@ for (const name of examples) {
     const r = await openMpak(bytesSource(bytes));
     assert.deepEqual(r.warnings, []);
     assert.equal(r.manifest.format, 'mpak');
-    assert.equal(await sha256(r.tab), r.manifest.tab.sha256);
+    assert.equal(await sha256(r.score), r.manifest.score.sha256);
     for (const rec of r.manifest.recordings || []) if (rec.sync || rec.syncFrom || rec.stemOf) assert.ok(r.sync(rec.id), `sync resolves for ${rec.id}`);
   });
 }
@@ -37,13 +37,13 @@ test('output is reproducible', async () => {
   assert.deepEqual(await packDirToBytes(dir), await packDirToBytes(dir));
 });
 
-test('audio entries are stored, tab is deflated', async () => {
+test('audio entries are stored, score is deflated', async () => {
   const bytes = Buffer.from(await packDirToBytes(stage('enriched')));
   const r = await openMpak(bytesSource(bytes));
   assert.ok(!r.entries.includes('mimetype'));
   const method = (n) => bytes.readUInt16LE(bytes.indexOf(Buffer.from(n)) - 30 + 8);
   assert.equal(method('audio/r1.ogg'), 0);
-  assert.equal(method('tab/example.gp5'), 8);
+  assert.equal(method('score/example.gp5'), 8);
 });
 
 test('a bundle written to disk opens by range, and the audio hash is checked by streaming', async () => {
@@ -68,7 +68,7 @@ test('a bundle written to disk opens by range, and the audio hash is checked by 
 
 test('readDir replaces placeholder hashes', async () => {
   const { manifest } = await readDir(stage('minimal'));
-  assert.notEqual(manifest.tab.sha256, '0'.repeat(64));
+  assert.notEqual(manifest.score.sha256, '0'.repeat(64));
 });
 
 test('externalPath is hashed on packDir, omitted from archive, and resolved on openMpakFile', async () => {
@@ -79,10 +79,10 @@ test('externalPath is hashed on packDir, omitted from archive, and resolved on o
   fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify({
     format: 'mpak',
     version: 1,
-    tab: { externalPath: 'books/book.pdf', format: 'pdf', sha256: '0'.repeat(64), pages: 20, startPage: 4, endPage: 7 },
+    score: { externalPath: 'books/book.pdf', format: 'pdf', sha256: '0'.repeat(64), pages: 20, startPage: 4, endPage: 7 },
   }));
   const { manifest, files } = await readDir(dir);
-  assert.equal(manifest.tab.sha256, await sha256(pdf));
+  assert.equal(manifest.score.sha256, await sha256(pdf));
   assert.equal(files.has('books/book.pdf'), false);
   const out = path.join(dir, 'song.mpak');
   await writeParts(out, (await packDir(dir)).parts);
@@ -90,13 +90,13 @@ test('externalPath is hashed on packDir, omitted from archive, and resolved on o
   try {
     assert.deepEqual(r.warnings, []);
     assert.equal(r.entries.includes('books/book.pdf'), false);
-    assert.deepEqual(Buffer.from(r.tab), pdf);
+    assert.deepEqual(Buffer.from(r.score), pdf);
   } finally { await r.close(); }
   // When external PDF is missing on disk, openMpakFile warns instead of throwing
   fs.unlinkSync(path.join(dir, 'books/book.pdf'));
   const rMissing = await openMpakFile(out);
   try {
-    assert.equal(rMissing.tab, null);
-    assert.match(rMissing.warnings[0], /missing external tab file/);
+    assert.equal(rMissing.score, null);
+    assert.match(rMissing.warnings[0], /missing external score file/);
   } finally { await rMissing.close(); }
 });

@@ -2,6 +2,10 @@
 
 ## Version 1.0
 
+- Added "Changing a score" to section 11. A writer that replaces or edits a score file in an existing pack must update its
+  `sha256` and must either confirm that the sync points still apply or remove them, and the same holds for an alternate.
+  A reader or editor that stores sync points outside the file should key them by the score's `sha256`.
+
 - A file can now hold several scores. The manifest field `score` is replaced by the array `scores`, and the first item is the
   primary score. Each score has an `id`, and may have a `label`. Sync is kept per score and recording: a recording's `sync`
   is now a map from a score `id` to a sync file path, and a sync file has a `score` field next to `recording`. Resolution

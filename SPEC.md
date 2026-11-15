@@ -581,6 +581,26 @@ A writer:
 6. SHOULD write audio entries Stored, and MUST use ZIP64 where section 3.1 requires it.
 7. SHOULD write a file in one pass over its audio, without holding the audio in memory.
 
+### Changing a score
+
+`sha256` marks the exact bytes that a score's sync anchors were written against (section 6), so a tool that replaces or
+edits a score file in an existing pack has to keep that mark true. A writer that does this:
+
+1. MUST update the score's `sha256` (and `pages`, for a PDF) to match the new file.
+2. MUST then either confirm that the score's sync points still apply, or remove them. A writer MUST NOT update `sha256`
+   without making that decision.
+   - The points still apply when the change keeps the structure that the anchors name: the same bars with the same
+     repeats and jumps, the same pages, the same lines.
+   - They do not apply when the change adds or removes bars, reflows a page, or reorders the form.
+3. MUST apply the same rule to an alternate (section 6.3). An alternate has its own `sha256`, and it stays valid for the
+   primary score's sync only while it still lines up with that score. If an edit to a score breaks that, the alternate
+   is no longer an alternate and the writer MUST remove it from `alternates`, or turn it into a score of its own.
+4. MUST NOT apply `stem.track` links to a changed primary score unless the track order is unchanged.
+
+A reader or editor that keeps sync points outside the file SHOULD key them by the score's `sha256`, and MAY carry them to
+a new hash only when the user, or the tool that made the edit, says the structure is unchanged. A different hash does
+not by itself show that the points are wrong, which is why section 10 asks a reader to warn and not to refuse.
+
 ### Enrichment
 
 A file is valid if it refers to audio only through `youtube` or `url` sources and holds no audio files. Another tool can

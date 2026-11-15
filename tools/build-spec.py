@@ -21,7 +21,7 @@ HEADER = """<pre class=metadata>
 Title: Music Pack (.mpak) Specification, version 1.0
 Shortname: mpak
 Level: none
-Status: w3c/UD
+Status: LS
 Indent: 2
 ED: https://github.com/cgarst/MusicPackSpec
 Repository: cgarst/MusicPackSpec

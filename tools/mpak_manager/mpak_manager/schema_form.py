@@ -99,6 +99,12 @@ class NodeEditorWidget(QTabWidget):
         self.raw_edit.clear()
 
         if pkg is None or ref is None:
+            if pkg is None:
+                layout = QVBoxLayout(self.form_container)
+                lbl = QLabel("Open a <code>.mpak</code> file, open an unpacked directory, or click <b>New</b> to begin.")
+                lbl.setWordWrap(True)
+                layout.addWidget(lbl)
+                layout.addStretch(1)
             return
 
         if ref.kind in ("sync_root", "beats_root", "archive_root"):

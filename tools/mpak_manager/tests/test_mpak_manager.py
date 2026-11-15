@@ -140,6 +140,19 @@ class TestArchiveRoundTrip(unittest.TestCase):
 
 
 class TestHeadlessQtUI(unittest.TestCase):
+    def test_main_window_starts_clean_without_file(self) -> None:
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        from PySide6.QtWidgets import QApplication
+
+        from mpak_manager.main_window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        win = MainWindow()
+        self.assertIsNone(win.pkg)
+        self.assertEqual(win.issues_list.count(), 0)
+        win.close()
+        app.processEvents()
+
     def test_main_window_loads_enriched_example(self) -> None:
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication

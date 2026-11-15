@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
     def __init__(self, initial_path: Path | None = None, parent: Any = None) -> None:
         super().__init__(parent)
         self.schemas = SchemaRegistry()
-        self.pkg: MpakPackage = MpakPackage.new_empty()
+        self.pkg: MpakPackage | None = None
 
         self.resize(1280, 800)
         self._build_ui()
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
         if initial_path is not None:
             self.open_path(initial_path)
         else:
-            self._load_package(self.pkg)
+            self._load_package(None)
 
     def _build_ui(self) -> None:
         central = QWidget()
@@ -104,25 +104,25 @@ class MainWindow(QMainWindow):
         act_open_dir = QAction("Open Dir…", self)
         act_open_dir.triggered.connect(self.action_open_dir)
 
-        act_save = QAction("Save", self)
-        act_save.setShortcut(QKeySequence.StandardKey.Save)
-        act_save.triggered.connect(self.action_save)
+        self.act_save = QAction("Save", self)
+        self.act_save.setShortcut(QKeySequence.StandardKey.Save)
+        self.act_save.triggered.connect(self.action_save)
 
-        act_save_as = QAction("Save As…", self)
-        act_save_as.setShortcut(QKeySequence.StandardKey.SaveAs)
-        act_save_as.triggered.connect(self.action_save_as)
+        self.act_save_as = QAction("Save As…", self)
+        self.act_save_as.setShortcut(QKeySequence.StandardKey.SaveAs)
+        self.act_save_as.triggered.connect(self.action_save_as)
 
-        act_unpack = QAction("Unpack…", self)
-        act_unpack.triggered.connect(self.action_unpack)
+        self.act_unpack = QAction("Unpack…", self)
+        self.act_unpack.triggered.connect(self.action_unpack)
 
-        act_validate = QAction("Validate", self)
-        act_validate.triggered.connect(self.run_validation)
+        self.act_validate = QAction("Validate", self)
+        self.act_validate.triggered.connect(self.run_validation)
 
-        for a in (act_new, act_open, act_open_dir, act_save, act_save_as, act_unpack, act_validate):
+        for a in (act_new, act_open, act_open_dir, self.act_save, self.act_save_as, self.act_unpack, self.act_validate):
             tb.addAction(a)
 
         tb.addSeparator()
-        self.lbl_status_badge = QLabel("  ✓ Valid  ")
+        self.lbl_status_badge = QLabel("  No file open  ")
         tb.addWidget(self.lbl_status_badge)
 
         file_menu = self.menuBar().addMenu("&File")
@@ -130,9 +130,9 @@ class MainWindow(QMainWindow):
         file_menu.addAction(act_open)
         file_menu.addAction(act_open_dir)
         file_menu.addSeparator()
-        file_menu.addAction(act_save)
-        file_menu.addAction(act_save_as)
-        file_menu.addAction(act_unpack)
+        file_menu.addAction(self.act_save)
+        file_menu.addAction(self.act_save_as)
+        file_menu.addAction(self.act_unpack)
         file_menu.addSeparator()
         act_quit = QAction("Quit", self)
         act_quit.setShortcut(QKeySequence.StandardKey.Quit)
@@ -140,7 +140,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(act_quit)
 
         pack_menu = self.menuBar().addMenu("&Pack")
-        pack_menu.addAction(act_validate)
+        pack_menu.addAction(self.act_validate)
 
         help_menu = self.menuBar().addMenu("&Help")
         act_about = QAction(f"About {APP_NAME}", self)
@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
         help_menu.addAction(act_about)
 
     def _confirm_discard(self) -> bool:
-        if not self.pkg.dirty:
+        if self.pkg is None or not self.pkg.dirty:
             return True
         ans = QMessageBox.question(
             self,
@@ -192,6 +192,8 @@ class MainWindow(QMainWindow):
         self._load_package(pkg)
 
     def action_save(self) -> None:
+        if self.pkg is None:
+            return
         if self.pkg.source_path is None or self.pkg.source_is_dir:
             self.action_save_as()
             return
@@ -204,6 +206,8 @@ class MainWindow(QMainWindow):
         self.run_validation()
 
     def action_save_as(self) -> None:
+        if self.pkg is None:
+            return
         default_name = (self.pkg.source_path.stem if self.pkg.source_path else "song") + ".mpak"
         path_str, _ = QFileDialog.getSaveFileName(self, "Save .mpak As", default_name, "Music Pack (*.mpak)")
         if not path_str:
@@ -219,6 +223,8 @@ class MainWindow(QMainWindow):
         self._load_package(self.pkg)
 
     def action_unpack(self) -> None:
+        if self.pkg is None:
+            return
         dir_str = QFileDialog.getExistingDirectory(self, "Select Empty Output Directory")
         if not dir_str:
             return
@@ -229,9 +235,14 @@ class MainWindow(QMainWindow):
             return
         QMessageBox.information(self, "Unpacked", f"Exported package to:\n{dir_str}")
 
-    def _load_package(self, pkg: MpakPackage) -> None:
+    def _load_package(self, pkg: MpakPackage | None) -> None:
         self.pkg = pkg
-        self.tree.set_package(pkg, preserve_location="manifest")
+        has_pkg = pkg is not None
+        for act in (self.act_save, self.act_save_as, self.act_unpack, self.act_validate):
+            act.setEnabled(has_pkg)
+        self.tree.set_package(pkg, preserve_location="manifest" if has_pkg else None)
+        if not has_pkg:
+            self.editor.set_node(None, None)
         self.audio_bar.set_package(pkg)
         self._update_title()
         self.run_validation()
@@ -248,8 +259,15 @@ class MainWindow(QMainWindow):
         self.run_validation()
 
     def run_validation(self) -> None:
-        issues = validate_package(self.pkg, self.schemas, verify_hashes=True)
         self.issues_list.clear()
+        if self.pkg is None:
+            self.lbl_val_summary.setText("<b>Validation:</b> No file open")
+            self.lbl_status_badge.setText("  No file open  ")
+            self.lbl_status_badge.setStyleSheet("")
+            self.lbl_arch_summary.setText("Open a .mpak file, open an unpacked directory, or click New.")
+            return
+
+        issues = validate_package(self.pkg, self.schemas, verify_hashes=True)
         errs = sum(1 for i in issues if i.severity == "error")
         warns = sum(1 for i in issues if i.severity == "warning")
 
@@ -286,6 +304,9 @@ class MainWindow(QMainWindow):
             self.tree.select_location(issue.location)
 
     def _update_title(self) -> None:
+        if self.pkg is None:
+            self.setWindowTitle(APP_NAME)
+            return
         name = self.pkg.source_path.name if self.pkg.source_path else "Untitled"
         dirty = " *" if self.pkg.dirty else ""
         self.setWindowTitle(f"{name}{dirty} — {APP_NAME}")

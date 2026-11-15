@@ -5,7 +5,7 @@ manifests name are not included, because they would be copyrighted or binary. Th
 zeros.
 
 To make a real file, add the tab (and any audio) at the paths the manifest names, then run `node
-reference/js/bin/mtab.js pack <folder> out.mtab`. The tool sets the hashes of the files it finds.
+reference/js/bin/mpak.js pack <folder> out.mpak`. The tool sets the hashes of the files it finds.
 
 | Folder | Shows |
 |---|---|
@@ -17,3 +17,6 @@ reference/js/bin/mtab.js pack <folder> out.mtab`. The tool sets the hashes of th
 | `guitar-only` | Guitar-only audio with no mix, and its own sync. |
 | `pdf` | A PDF tab with page and position sync, and a manual tuning. |
 | `text` | A text tab with line and column sync. |
+| `musicxml` | A MusicXML score with bar sync, and a repeated pass (`occurrence` 1). |
+| `midi` | A MIDI file with tick sync. |
+| `abc` | An ABC notation tab with line sync. |

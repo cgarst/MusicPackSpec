@@ -1,7 +1,7 @@
 {
-  "name": "mtab-reference",
+  "name": "mpak-reference",
   "version": "0.1.0",
-  "description": "Reference reader, writer and validator for the Multi-Track Tab (.mtab) format. The core runs in Node, browsers and webviews; ./node adds files on disk.",
+  "description": "Reference reader, writer and validator for the Music Pack (.mpak) format. The core runs in Node, browsers and webviews; ./node adds files on disk.",
   "type": "module",
   "license": "MIT",
   "private": true,
@@ -9,7 +9,7 @@
     "node": ">=22"
   },
   "bin": {
-    "mtab": "bin/mtab.js"
+    "mpak": "bin/mpak.js"
   },
   "scripts": {
     "test": "node --test test/*.test.js"

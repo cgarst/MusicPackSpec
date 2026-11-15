@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { openMtab, buildMtab, verifyAudioHash, concatParts, tabEntry, sha256, MtabError } from '../core/index.js';
+import { openMpak, buildMpak, verifyAudioHash, concatParts, tabEntry, sha256, MpakError } from '../core/index.js';
 
 export * from '../core/index.js';
 
@@ -28,18 +28,18 @@ export async function fileSource(p) {
   };
 }
 
-/** Opens a .mtab file on disk. Returns the opened bundle with an added `close()`. */
-export async function openMtabFile(p, opts = {}) {
+/** Opens a .mpak file on disk. Returns the opened bundle with an added `close()`. */
+export async function openMpakFile(p, opts = {}) {
   const source = await fileSource(p);
   const root = path.dirname(path.resolve(p));
   const externalTab = opts.externalTab ?? (async (rel, warnings) => {
     const dest = path.resolve(root, rel);
-    if (!dest.startsWith(root + path.sep)) throw new MtabError(`refusing external tab path ${rel}`);
+    if (!dest.startsWith(root + path.sep)) throw new MpakError(`refusing external tab path ${rel}`);
     if (!fs.existsSync(dest)) { warnings.push(`missing external tab file ${rel}`); return null; }
     return new Uint8Array(await fs.promises.readFile(dest));
   });
   try {
-    const opened = await openMtab(source, { ...opts, externalTab });
+    const opened = await openMpak(source, { ...opts, externalTab });
     return { ...opened, close: () => source.close() };
   } catch (e) { await source.close(); throw e; }
 }
@@ -89,7 +89,7 @@ export async function readDir(dir, { fixHashes = true } = {}) {
 /** Packs an unpacked directory into a bundle's parts. */
 export async function packDir(dir, opts) {
   const { manifest, files } = await readDir(dir, opts);
-  return buildMtab(manifest, files);
+  return buildMpak(manifest, files);
 }
 
 export const packDirToBytes = async (dir, opts) => concatParts((await packDir(dir, opts)).parts);

@@ -1,0 +1,22 @@
+{
+  "format": "mpak",
+  "version": 1,
+  "tab": {
+    "path": "tab/example.mid",
+    "format": "midi",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "recordings": [
+    {
+      "id": "r1",
+      "role": "original",
+      "sync": "sync/r1.json",
+      "sources": [
+        {
+          "type": "youtube",
+          "videoId": "EEEEEEEEEEE"
+        }
+      ]
+    }
+  ]
+}

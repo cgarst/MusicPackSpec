@@ -18,13 +18,13 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "site"
 
 HEADER = """<pre class=metadata>
-Title: Multi-Track Tab (.mtab) Specification
-Shortname: mtab
+Title: Music Pack (.mpak) Specification
+Shortname: mpak
 Level: 1
 Status: LS
 Indent: 2
-ED: https://github.com/cgarst/MultiTrackTabSpec
-Repository: cgarst/MultiTrackTabSpec
+ED: https://github.com/cgarst/MusicPackSpec
+Repository: cgarst/MusicPackSpec
 Editor: Corey Garst
 Abstract: %s
 Markup Shorthands: markdown yes, css no
@@ -108,7 +108,7 @@ def convert(src: str) -> str:
     first_num = next(i for i, l in enumerate(lines) if l.startswith("## 1. "))
     intro = [l for l in lines[1:ci]]
     paras = [p.strip().replace("\n", " ") for p in "\n".join(intro).split("\n\n") if p.strip()]
-    abstract = paras[1]          # "A Multi-Track Tab file ... any language can read and write it."
+    abstract = paras[1]          # "A Music Pack file ... any language can read and write it."
     conventions = [paras[0], paras[2]]   # version note, RFC 2119 note
 
     out = [HEADER % abstract, '<h2 class="no-num" id="conventions">Conventions</h2>', ""]

@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:mtab:schema:manifest:1",
-  "title": "Multi-Track Tab manifest, version 1",
-  "description": "manifest.json inside a .mtab archive. Unknown fields are allowed and ignored by readers.",
+  "$id": "urn:mpak:schema:manifest:1",
+  "title": "Music Pack manifest, version 1",
+  "description": "manifest.json inside a .mpak archive. Unknown fields are allowed and ignored by readers.",
   "type": "object",
   "required": ["format", "version", "tab"],
   "properties": {
-    "format": { "const": "mtab" },
+    "format": { "const": "mpak" },
     "version": { "const": 1 },
     "createdAt": { "type": "string", "format": "date-time" },
     "generator": {
@@ -71,7 +71,7 @@
       "properties": {
         "path": { "$ref": "#/$defs/archivePath" },
         "externalPath": { "$ref": "#/$defs/archivePath" },
-        "format": { "enum": ["gp3", "gp4", "gp5", "gp", "gpx", "pdf", "txt"] },
+        "format": { "enum": ["gp3", "gp4", "gp5", "gp", "gpx", "musicxml", "mxl", "mscz", "midi", "abc", "pdf", "txt"] },
         "sha256": { "$ref": "#/$defs/sha256" },
         "name": { "type": "string" },
         "pages": { "type": "integer", "minimum": 1 },

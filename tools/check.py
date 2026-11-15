@@ -11,7 +11,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load = lambda p: json.load(open(p))
 manifest_v = Draft202012Validator(load(f"{ROOT}/schema/manifest.schema.json"))
 sync_v = Draft202012Validator(load(f"{ROOT}/schema/sync.schema.json"))
-ANCHOR = {"gp3": "bar", "gp4": "bar", "gp5": "bar", "gp": "bar", "gpx": "bar", "pdf": "pdf", "txt": "text"}
+ANCHOR = {"gp3": "bar", "gp4": "bar", "gp5": "bar", "gp": "bar", "gpx": "bar", "musicxml": "bar", "mxl": "bar",
+          "mscz": "bar", "midi": "tick", "abc": "text", "pdf": "pdf", "txt": "text"}
 
 
 def schema_errors(validator, doc):

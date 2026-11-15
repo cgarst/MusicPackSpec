@@ -6,19 +6,19 @@ import zlib from 'node:zlib';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { MtabError, buildMtab, concatParts, openMtab, bytesSource, sha256, zipParts, entryRange, validateManifest } from '../src/core/index.js';
+import { MpakError, buildMpak, concatParts, openMpak, bytesSource, sha256, zipParts, entryRange, validateManifest } from '../src/core/index.js';
 import { u8, goodManifest, base, build, open } from './helpers.js';
 
 const rejects = async (files, re, opts) => {
   const bytes = await build(files, opts ?? { unchecked: true });
-  await assert.rejects(() => open(bytes), (e) => e instanceof MtabError && re.test(e.message));
+  await assert.rejects(() => open(bytes), (e) => e instanceof MpakError && re.test(e.message));
 };
 
 // --- container rules -------------------------------------------------------------------------------------------
 test('baseline hand-built archive is accepted', async () => assert.deepEqual((await open(await build(await base()))).warnings, []));
 test('rejects missing manifest', async () => { const b = await base(); await rejects([b[1]], /manifest/); });
 test('ignores a mimetype entry left by an earlier writer, wherever it is', async () => {
-  const old = { name: 'mimetype', data: u8('application/vnd.mtab+zip'), store: true };
+  const old = { name: 'mimetype', data: u8('application/vnd.mpak+zip'), store: true };
   for (const files of [[old, ...await base()], [...await base(), old]]) assert.deepEqual((await open(await build(files))).warnings, []);
 });
 test('rejects zip slip entry', async () => rejects([...await base(), { name: '../evil', data: u8('x') }], /bad entry name/));
@@ -51,7 +51,7 @@ test('rejects a lying central directory size (inflates past the stated size)', a
   const cen = bytes.lastIndexOf(Buffer.from([0x50, 0x4b, 1, 2]), bytes.indexOf(Buffer.from('x/a'), bytes.length - 200));
   bytes.writeUInt32LE(10, cen + 24); // claim 10 bytes
   const o = await open(bytes);
-  await assert.rejects(() => o.file('x/a'), MtabError);
+  await assert.rejects(() => o.file('x/a'), MpakError);
 });
 test('rejects too many entries', async () => {
   const f = [...await base()];
@@ -61,7 +61,7 @@ test('rejects too many entries', async () => {
 test('rejects corrupted data (crc)', async () => {
   const bytes = await build(await base());
   bytes[Buffer.from(bytes).indexOf(Buffer.from('tab/a.txt')) + 9] ^= 0xff;
-  await assert.rejects(() => open(bytes), MtabError);
+  await assert.rejects(() => open(bytes), MpakError);
 });
 test('rejects encrypted flag', async () => {
   const bytes = Buffer.from(await build(await base()));
@@ -72,11 +72,11 @@ test('rejects overlapping entries', async () => {
   const bytes = Buffer.from(await build(await base()));
   const cens = []; for (let i = 0; i < bytes.length - 4; i++) if (bytes.readUInt32LE(i) === 0x02014b50) cens.push(i);
   bytes.writeUInt32LE(bytes.readUInt32LE(cens[0] + 42), cens[1] + 42);
-  await assert.rejects(() => open(bytes), MtabError);
+  await assert.rejects(() => open(bytes), MpakError);
 });
 test('rejects bytes that are not a zip', async () => {
-  await assert.rejects(() => open(new Uint8Array(100)), MtabError);
-  await assert.rejects(() => open(new Uint8Array(5)), MtabError);
+  await assert.rejects(() => open(new Uint8Array(100)), MpakError);
+  await assert.rejects(() => open(new Uint8Array(5)), MpakError);
 });
 test('hash mismatch is a warning, not an error', async () => {
   const b = await base();
@@ -90,7 +90,7 @@ test('unknown extra entries and x- fields are ignored', async () => {
   const o = await open(await build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1], { name: 'extra/foo.bin', data: u8('q') }]));
   assert.deepEqual(o.warnings, []);
 });
-test('writer refuses an invalid manifest', async () => assert.rejects(() => buildMtab({ format: 'mtab', version: 1 }, {}), MtabError));
+test('writer refuses an invalid manifest', async () => assert.rejects(() => buildMpak({ format: 'mpak', version: 1 }, {}), MpakError));
 test('stored entries survive a round trip with real content', async () => {
   const big = new Uint8Array(zlib.deflateRawSync(Buffer.alloc(1000, 1)));
   const o = await open(await build([...await base(), { name: 'audio/a.bin', data: big, store: true }]));
@@ -105,7 +105,7 @@ test('opening a bundle with 20 MiB of audio reads a small fraction of it, and no
   const bytes = await build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1], { name: 'audio/big.bin', data: audio, store: true }]);
   let read = 0;
   const src = { size: bytes.length, read: async (s, e) => { read += Math.min(e, bytes.length) - s; return bytes.subarray(s, e); } };
-  const o = await openMtab(src);
+  const o = await openMpak(src);
   assert.deepEqual(o.warnings, []);
   assert.ok(read < 256 << 10, `read ${read} bytes`);
   const r = o.range('audio/big.bin');
@@ -154,7 +154,7 @@ test('sha256 matches Node for a known value', async () => assert.equal(await sha
 
 // --- tuning, multi-song pdf, externalPath ----------------------------------------------------------------------
 test('tuning accepts pitch names with or without octaves', () => {
-  const baseM = { format: 'mtab', version: 1, tab: { path: 'tab/a.txt', format: 'txt', sha256: '0'.repeat(64) } };
+  const baseM = { format: 'mpak', version: 1, tab: { path: 'tab/a.txt', format: 'txt', sha256: '0'.repeat(64) } };
   assert.deepEqual(validateManifest({ ...baseM, tab: { ...baseM.tab, tuning: ['D', 'A', 'D', 'G', 'B', 'E'] } }), []);
   assert.deepEqual(validateManifest({ ...baseM, tab: { ...baseM.tab, tuning: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'] } }), []);
   assert.ok(validateManifest({ ...baseM, tab: { ...baseM.tab, tuning: ['H', 'A'] } }).length);
@@ -162,24 +162,24 @@ test('tuning accepts pitch names with or without octaves', () => {
 
 test('multi-song PDF startPage/endPage bounds are validated', () => {
   const pdfTab = { path: 'tab/book.pdf', format: 'pdf', sha256: '0'.repeat(64), pages: 10 };
-  assert.deepEqual(validateManifest({ format: 'mtab', version: 1, tab: { ...pdfTab, startPage: 3, endPage: 7 } }), []);
-  assert.deepEqual(validateManifest({ format: 'mtab', version: 1, tab: { ...pdfTab, startPage: 5, endPage: 5 } }), []);
-  assert.ok(validateManifest({ format: 'mtab', version: 1, tab: { ...pdfTab, startPage: 6, endPage: 5 } }).length);
-  assert.ok(validateManifest({ format: 'mtab', version: 1, tab: { ...pdfTab, startPage: 11 } }).length);
-  assert.ok(validateManifest({ format: 'mtab', version: 1, tab: { ...pdfTab, endPage: 11 } }).length);
+  assert.deepEqual(validateManifest({ format: 'mpak', version: 1, tab: { ...pdfTab, startPage: 3, endPage: 7 } }), []);
+  assert.deepEqual(validateManifest({ format: 'mpak', version: 1, tab: { ...pdfTab, startPage: 5, endPage: 5 } }), []);
+  assert.ok(validateManifest({ format: 'mpak', version: 1, tab: { ...pdfTab, startPage: 6, endPage: 5 } }).length);
+  assert.ok(validateManifest({ format: 'mpak', version: 1, tab: { ...pdfTab, startPage: 11 } }).length);
+  assert.ok(validateManifest({ format: 'mpak', version: 1, tab: { ...pdfTab, endPage: 11 } }).length);
 });
 
 test('externalPath opens without embedding the PDF and checks sha256 when provided', async () => {
   const pdfBytes = u8('%PDF-1.4 shared book');
-  const m = { format: 'mtab', version: 1, tab: { externalPath: 'books/jazz.pdf', format: 'pdf', sha256: await sha256(pdfBytes), startPage: 2, endPage: 4 } };
-  const parts = await buildMtab(m, {});
+  const m = { format: 'mpak', version: 1, tab: { externalPath: 'books/jazz.pdf', format: 'pdf', sha256: await sha256(pdfBytes), startPage: 2, endPage: 4 } };
+  const parts = await buildMpak(m, {});
   const archive = await concatParts(parts.parts);
-  const withoutExternal = await openMtab(bytesSource(archive));
+  const withoutExternal = await openMpak(bytesSource(archive));
   assert.equal(withoutExternal.tab, null);
   assert.deepEqual(withoutExternal.warnings, []);
-  const withExternal = await openMtab(bytesSource(archive), { externalTab: (rel) => (rel === 'books/jazz.pdf' ? pdfBytes : null) });
+  const withExternal = await openMpak(bytesSource(archive), { externalTab: (rel) => (rel === 'books/jazz.pdf' ? pdfBytes : null) });
   assert.deepEqual(withExternal.tab, pdfBytes);
   assert.deepEqual(withExternal.warnings, []);
-  const mismatch = await openMtab(bytesSource(archive), { externalTab: u8('%PDF-1.4 wrong') });
+  const mismatch = await openMpak(bytesSource(archive), { externalTab: u8('%PDF-1.4 wrong') });
   assert.match(mismatch.warnings[0], /sha256 mismatch/);
 });

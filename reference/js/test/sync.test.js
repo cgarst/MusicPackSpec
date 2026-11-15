@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MtabError, openMtab, bytesSource, zipParts, concatParts } from '../src/core/index.js';
+import { MpakError, openMpak, bytesSource, zipParts, concatParts } from '../src/core/index.js';
 import { u8, goodManifest, base } from './helpers.js';
 
 async function syncBundle(recordings, syncs, anchorType = 'text') {
@@ -11,7 +11,7 @@ async function syncBundle(recordings, syncs, anchorType = 'text') {
     const rec = recordings.find((r) => r.sync === name).id;
     files.push({ name, data: u8(JSON.stringify({ version: 1, recording: rec, anchorType, points: pts.map((t, i) => ({ timeMs: t, line: i, col: 0 })) })) });
   }
-  return openMtab(bytesSource(await concatParts((await zipParts(files)).parts)));
+  return openMpak(bytesSource(await concatParts((await zipParts(files)).parts)));
 }
 const times = (s) => s.points.map((p) => p.timeMs);
 
@@ -52,7 +52,7 @@ test('own sync wins over stemOf; recordings without sync data resolve to null', 
   assert.equal(r.sync('x'), null);
 });
 test('rejects syncOffsetMs without syncFrom or with an own sync file', async () => {
-  const bad = (rec) => assert.rejects(() => syncBundle([{ id: 'a', role: 'original', sources: [] }, rec], {}), MtabError);
+  const bad = (rec) => assert.rejects(() => syncBundle([{ id: 'a', role: 'original', sources: [] }, rec], {}), MpakError);
   await bad({ id: 'b', role: 'backing', syncOffsetMs: 5, sources: [] });
   await bad({ id: 'b', role: 'backing', syncFrom: 'a', sync: 'sync/b.json', syncOffsetMs: 5, sources: [] });
 });
@@ -69,7 +69,7 @@ test('a misaligned stem uses syncFrom with an offset', async () => {
 test('an embedded source on a gp tab is accepted; on another tab format it is a warning', async () => {
   const gp = { ...await goodManifest(), tab: { path: 'tab/a.txt', format: 'gp', sha256: (await goodManifest()).tab.sha256 }, recordings: [{ id: 'a', role: 'original', sources: [{ type: 'embedded' }] }] };
   const b = await base();
-  const make = async (m) => openMtab(bytesSource(await concatParts((await zipParts([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]])).parts)));
+  const make = async (m) => openMpak(bytesSource(await concatParts((await zipParts([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]])).parts)));
   assert.deepEqual((await make(gp)).warnings, []);
   const txt = { ...gp, tab: { ...gp.tab, format: 'txt' } };
   assert.match((await make(txt)).warnings[0], /embedded source on a txt tab/);
@@ -78,5 +78,5 @@ test('two embedded sources on one recording are refused', async () => {
   const m = { ...await goodManifest(), recordings: [{ id: 'a', role: 'original', sources: [{ type: 'embedded', id: 'e1' }, { type: 'embedded', id: 'e2' }] }] };
   const b = await base();
   const bytes = await concatParts((await zipParts([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]])).parts);
-  await assert.rejects(() => openMtab(bytesSource(bytes)), /more than one embedded/);
+  await assert.rejects(() => openMpak(bytesSource(bytes)), /more than one embedded/);
 });

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "recording": "r1",
+  "anchorType": "bar",
+  "points": [
+    {
+      "timeMs": 0,
+      "bar": 0
+    },
+    {
+      "timeMs": 2000,
+      "bar": 1
+    },
+    {
+      "timeMs": 4000,
+      "bar": 2
+    },
+    {
+      "timeMs": 6000,
+      "bar": 1,
+      "occurrence": 1
+    },
+    {
+      "timeMs": 8000,
+      "bar": 2,
+      "occurrence": 1,
+      "pos": 0.5
+    }
+  ]
+}

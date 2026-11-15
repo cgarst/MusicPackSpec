@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "recording": "r1",
+  "anchorType": "tick",
+  "points": [
+    {
+      "timeMs": 0,
+      "bar": 0
+    }
+  ]
+}

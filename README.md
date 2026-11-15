@@ -1,10 +1,10 @@
-# Multi-Track Tab (.mtab)
+# Music Pack (.mpak)
 
 An open file format that packages one song for practice: the **tab**, the **recordings** that go with it (original,
 backing track, stems), and the **sync points** that align the tab to each recording.
 
 The file is a ZIP archive of ordinary files, so any language can read and write it. The tab inside is an existing file
-(Guitar Pro, PDF, or plain text), stored untouched.
+(Guitar Pro, MusicXML, MuseScore, MIDI, ABC, PDF, or plain text), stored untouched.
 
 **Version 1.** If you build a tab reader or editor, your feedback
 is welcome, especially on the [open questions](SPEC.md#15-open-questions).
@@ -24,7 +24,7 @@ is welcome, especially on the [open questions](SPEC.md#15-open-questions).
 ## At a glance
 
 ```
-song.mtab  (ZIP)
+song.mpak  (ZIP)
 ├── manifest.json     song, tab, recordings
 ├── tab/song.gp5      the tab, byte for byte
 ├── audio/mix.ogg     optional audio
@@ -33,7 +33,8 @@ song.mtab  (ZIP)
 
 - Everything about the song is optional. The only required content is a tab.
 - A recording can be a file in the archive, a YouTube video, a web address, or only a reference.
-- Sync points work for Guitar Pro tabs (by bar), PDF tabs (by page and position), and text tabs (by line and column).
+- Sync points work for Guitar Pro, MusicXML, and MuseScore scores (by bar), MIDI files (by tick), PDF tabs (by page and
+  position), and text and ABC tabs (by line and column).
 - Stems can be linked to the tab's tracks, so a reader can build a backing mix.
 
 ## Check the examples
@@ -51,7 +52,7 @@ python3 tools/check.py
 - Code in this repository (`tools/` and `reference/`): [MIT](LICENSE).
 - The examples contain no real tabs or recordings. Do not add copyrighted tabs, tab PDFs or audio to this repository.
 
-"Multi-Track Tab" and `.mtab` may be used freely to describe files and software that follow this specification.
+"Music Pack" and `.mpak` may be used freely to describe files and software that follow this specification.
 
 ## Reference implementation
 
@@ -63,8 +64,8 @@ python3 tools/check.py
   central directory, the manifest, the tab and the sync files, and no audio. Audio is a byte range
   (`opened.range(path)`) or a stream (`opened.stream(path)`). The writer takes audio as `{ source, start, end }` and returns a
   list of parts to write, so audio is never copied into memory. Both handle ZIP64.
-- **`src/node`** adds files on disk (`fileSource`, `openMtabFile`, `writeParts`), a streaming SHA-256 for audio, the
-  `mtab` command-line tool, and the Ajv check used by the tests.
+- **`src/node`** adds files on disk (`fileSource`, `openMpakFile`, `writeParts`), a streaming SHA-256 for audio, the
+  `mpak` command-line tool, and the Ajv check used by the tests.
 
 In a browser, a source over a `Blob` is `{ size: blob.size, read: async (s, e) => new Uint8Array(await blob.slice(s, e).arrayBuffer()) }`.
 To build a `Blob` from the writer's parts, map a source part to `blob.slice(start, end)` on the blob behind that source.
@@ -73,10 +74,10 @@ It needs Node 22 or later. The core has no runtime dependencies; Ajv is a develo
 
 ```
 cd reference/js && npm ci && npm test
-node bin/mtab.js pack <dir> out.mtab      # <dir> is laid out like examples/*; fills in sha256 of files present
-node bin/mtab.js validate out.mtab
-node bin/mtab.js info out.mtab
-node bin/mtab.js unpack out.mtab <emptydir>
+node bin/mpak.js pack <dir> out.mpak      # <dir> is laid out like examples/*; fills in sha256 of files present
+node bin/mpak.js validate out.mpak
+node bin/mpak.js info out.mpak
+node bin/mpak.js unpack out.mpak <emptydir>
 ```
 
 The tests build real archives from every example, using dummy tab and audio files. They feed the reader hostile archives

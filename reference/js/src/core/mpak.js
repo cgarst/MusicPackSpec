@@ -1,11 +1,11 @@
-// Reference reader and writer for .mtab (Multi-Track Tab) version 1, portable core.
+// Reference reader and writer for .mpak (Music Pack) version 1, portable core.
 // Runs wherever Uint8Array, TextDecoder, Compression Streams and Web Crypto exist: Node 22, browsers, webviews.
 // It reads an archive through a ByteSource (see source.js), so a large file is read by range and never held whole.
-import { LIMITS, MtabError, checkEntryName, readDirectory, readEntry, entryRange, entryStream, zipParts } from './zip.js';
+import { LIMITS, MpakError, checkEntryName, readDirectory, readEntry, entryRange, entryStream, zipParts } from './zip.js';
 import { validateManifest, validateSync, ANCHOR } from './check.js';
 
-/** The media type of a .mtab file. It is not written inside the archive. */
-export const MEDIA_TYPE = 'application/vnd.mtab+zip';
+/** The media type of a .mpak file. It is not written inside the archive. */
+export const MEDIA_TYPE = 'application/vnd.mpak+zip';
 
 /** Lowercase hex SHA-256 of a Uint8Array, using Web Crypto. */
 export async function sha256(bytes) {
@@ -14,7 +14,7 @@ export async function sha256(bytes) {
 }
 
 /**
- * Opens a bundle from a ByteSource. Throws MtabError for a bundle a reader must reject.
+ * Opens a bundle from a ByteSource. Throws MpakError for a bundle a reader must reject.
  * Reads the end of the archive, the central directory, the manifest, the tab and the sync files, and no audio.
  * Hash mismatches are warnings, not errors (SPEC section 12).
  *
@@ -23,21 +23,21 @@ export async function sha256(bytes) {
  *   sync(id)   the recording's sync points resolved on its own timeline (section 9), or null
  *   file(path) one entry read whole; stream(path) one entry as chunks; range(path) a Stored entry's {start, end} in the archive
  */
-export async function openMtab(source, { limits = LIMITS, hash = sha256, externalTab } = {}) {
+export async function openMpak(source, { limits = LIMITS, hash = sha256, externalTab } = {}) {
   const entries = await readDirectory(source, limits);
   const byName = new Map(entries.map((e) => [e.name, e]));
   const me = byName.get('manifest.json');
-  if (!me) throw new MtabError('missing manifest.json');
+  if (!me) throw new MpakError('missing manifest.json');
   const mbytes = await readEntry(source, me, { maxSize: limits.maxManifest, limits });
-  if (mbytes[0] === 0xef && mbytes[1] === 0xbb && mbytes[2] === 0xbf) throw new MtabError('manifest has a byte order mark');
+  if (mbytes[0] === 0xef && mbytes[1] === 0xbb && mbytes[2] === 0xbf) throw new MpakError('manifest has a byte order mark');
   let manifest;
-  try { manifest = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(mbytes)); } catch (e) { throw new MtabError(`manifest is not JSON: ${e.message}`); }
-  if (typeof manifest?.version === 'number' && manifest.version > 1) throw new MtabError(`unsupported version ${manifest.version}`);
+  try { manifest = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(mbytes)); } catch (e) { throw new MpakError(`manifest is not JSON: ${e.message}`); }
+  if (typeof manifest?.version === 'number' && manifest.version > 1) throw new MpakError(`unsupported version ${manifest.version}`);
   const errs = validateManifest(manifest);
-  if (errs.length) throw new MtabError(`invalid manifest:\n  ${errs.join('\n  ')}`);
+  if (errs.length) throw new MpakError(`invalid manifest:\n  ${errs.join('\n  ')}`);
 
   const warnings = [];
-  const need = (p) => { const e = byName.get(p); if (!e) throw new MtabError(`missing entry ${p}`); return e; };
+  const need = (p) => { const e = byName.get(p); if (!e) throw new MpakError(`missing entry ${p}`); return e; };
   const file = (p, maxSize = Infinity) => readEntry(source, need(p), { maxSize, limits });
   const stream = (p) => entryStream(source, need(p), { limits });
   const range = (p) => entryRange(need(p));
@@ -111,9 +111,9 @@ export async function verifyAudioHash(opened, src, hasher) {
  * `files` is a Map or object of archive path -> Uint8Array | { source, start?, end? } (tab, audio, sync).
  * The caller puts the tab's `format` and `sha256` in `manifest`.
  */
-export async function buildMtab(manifest, files, { zip64Threshold } = {}) {
+export async function buildMpak(manifest, files, { zip64Threshold } = {}) {
   const errs = validateManifest(manifest);
-  if (errs.length) throw new MtabError(`invalid manifest:\n  ${errs.join('\n  ')}`);
+  if (errs.length) throw new MpakError(`invalid manifest:\n  ${errs.join('\n  ')}`);
   const list = [
     { name: 'manifest.json', data: new TextEncoder().encode(JSON.stringify(manifest, null, 2) + '\n') },
   ];
@@ -127,4 +127,4 @@ export async function tabEntry(path, bytes) {
   return { path, format: path.split('.').pop().toLowerCase(), sha256: await sha256(bytes) };
 }
 
-export { LIMITS, MtabError, ANCHOR, validateManifest, validateSync };
+export { LIMITS, MpakError, ANCHOR, validateManifest, validateSync };

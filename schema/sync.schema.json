@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:mtab:schema:sync:1",
-  "title": "Multi-Track Tab sync file, version 1",
-  "description": "A sync file under sync/ in a .mtab archive. Aligns the tab to one recording. anchorType must match the tab format in the manifest.",
+  "$id": "urn:mpak:schema:sync:1",
+  "title": "Music Pack sync file, version 1",
+  "description": "A sync file under sync/ in a .mpak archive. Aligns the tab to one recording. anchorType must match the tab format in the manifest (bar, tick, pdf or text).",
   "type": "object",
   "required": [
     "version",
@@ -21,6 +21,7 @@
     "anchorType": {
       "enum": [
         "bar",
+        "tick",
         "pdf",
         "text"
       ]
@@ -47,6 +48,24 @@
           "points": {
             "items": {
               "$ref": "#/$defs/barPoint"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "anchorType": {
+            "const": "tick"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "points": {
+            "items": {
+              "$ref": "#/$defs/tickPoint"
             }
           }
         }
@@ -138,6 +157,22 @@
           "minimum": 0,
           "maximum": 1,
           "default": 0
+        }
+      }
+    },
+    "tickPoint": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common"
+        }
+      ],
+      "required": [
+        "tick"
+      ],
+      "properties": {
+        "tick": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },

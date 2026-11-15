@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "recording": "r1",
+  "anchorType": "tick",
+  "points": [
+    {
+      "timeMs": 0,
+      "tick": 0
+    },
+    {
+      "timeMs": 2000,
+      "tick": 1920
+    },
+    {
+      "timeMs": 4100,
+      "tick": 3840
+    }
+  ]
+}

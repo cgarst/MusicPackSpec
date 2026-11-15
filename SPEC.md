@@ -1,8 +1,8 @@
-# Multi-Track Tab (.mtab) Specification
+# Music Pack (.mpak) Specification
 
 **Version 1.** Changes within version 1 only add optional things. A change that breaks existing files is a new version, and the manifest `version` field says which one a file uses.
 
-A Multi-Track Tab file (extension `.mtab`) packages one song for practice. It holds the tab, the recordings that go with
+A Music Pack file (extension `.mpak`) packages one song for practice. It holds the tab, the recordings that go with
 it (original, backing track, stems), and the sync points that align the tab to each recording. The file is a ZIP archive
 of ordinary files, so any language can read and write it.
 
@@ -57,7 +57,7 @@ A Core reader ignores `recordings` and sync files. A Playback reader plays stem 
 
 ## 3. Container
 
-A `.mtab` file is a ZIP archive. It uses the ISO/IEC 21320 subset of ZIP, plus ZIP64 where needed. The archive has this
+A `.mpak` file is a ZIP archive. It uses the ISO/IEC 21320 subset of ZIP, plus ZIP64 where needed. The archive has this
 layout:
 
 ```
@@ -70,7 +70,7 @@ sync/<name>.json  optional sync files (section 9)
 Rules:
 
 1. The archive has no `mimetype` entry, and a writer MUST NOT write one. A reader recognises a file by its `manifest.json`
-   (`format` is `mtab`), together with the `.mtab` extension and the media type `application/vnd.mtab+zip`. An entry named
+   (`format` is `mpak`), together with the `.mpak` extension and the media type `application/vnd.mpak+zip`. An entry named
    `mimetype` in a file from an earlier writer is an entry the manifest does not name (rule 7), so a reader ignores it.
 2. `manifest.json` MUST be present. It MUST be UTF-8 JSON with no byte order mark, and at most 1 MiB.
 3. Entry names MUST be UTF-8 and use `/` as the separator. A name MUST be relative and MUST NOT contain a `..` segment,
@@ -107,7 +107,7 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `format` | `"mtab"` | yes | Format marker. |
+| `format` | `"mpak"` | yes | Format marker. |
 | `version` | integer, `1` | yes | Spec major version. A reader MUST reject a higher value and say so. |
 | `createdAt` | string, date-time | no | When the file was created. |
 | `generator` | `{ name, version? }` | no | The software that wrote the file. |
@@ -155,7 +155,7 @@ Defined keys: `musicbrainz` (object with optional `recording`, `artist`, `releas
 (string). Other keys are allowed.
 
 If `title` or `artist` is missing and a reader needs a display name, the reader SHOULD use the first of these that
-exists: metadata inside the tab file, the tab's file name, the name of the `.mtab` file.
+exists: metadata inside the tab file, the tab's file name, the name of the `.mpak` file.
 
 ## 6. Tab
 
@@ -165,7 +165,7 @@ exists: metadata inside the tab file, the tab's file name, the name of the `.mta
 |---|---|---|---|
 | `path` | string | unless `externalPath` | Archive path of the tab file, under `tab/`. |
 | `externalPath` | string | unless `path` | Relative path to a shared PDF file outside the archive (`pdf` only). |
-| `format` | enum | yes | `gp3`, `gp4`, `gp5`, `gp` (Guitar Pro 7 and later), `gpx`, `pdf`, `txt`. |
+| `format` | enum | yes | `gp3`, `gp4`, `gp5`, `gp` (Guitar Pro 7 and later), `gpx`, `musicxml` (uncompressed MusicXML), `mxl` (compressed MusicXML), `mscz` (MuseScore), `midi` (Standard MIDI File), `abc` (ABC notation), `pdf`, `txt`. |
 | `sha256` | string | yes | Lowercase hex SHA-256 of the tab file's bytes. |
 | `name` | string | no | The original file name, for display. |
 | `pages` | integer | no | Page count of the PDF file, for `pdf`. |
@@ -176,31 +176,33 @@ exists: metadata inside the tab file, the tab's file name, the name of the `.mta
 - `tab` MUST have either `path` or `externalPath`, and MUST NOT have both. `externalPath` is allowed only when `format`
   is `pdf`.
 - A writer MUST store an embedded tab file (`path`) exactly as supplied and MUST NOT convert or re-encode it. The one
-  exception is a `txt` tab, which MUST be UTF-8. A writer converts any other encoding and records the hash of the
+  exception is a `txt` or `abc` tab, which MUST be UTF-8. A writer converts any other encoding and records the hash of the
   converted file.
 - `sha256` identifies the tab file that the sync anchors and stem track links were written against (for an external PDF,
   the whole PDF file). If a reader finds a different hash, it SHOULD tell the user that sync points may be wrong. It
   MUST NOT silently apply track links (section 8).
 - `tuning` is for tabs that do not carry their own, mainly `pdf` and `txt`. For score formats, the tuning in the file
   wins. A writer SHOULD omit `tuning` for those formats or make it agree with the file.
-- The format decides the anchor type that sync uses (section 9): `gp3`, `gp4`, `gp5`, `gp`, and `gpx` use `bar`; `pdf`
-  uses `pdf`; `txt` uses `text`.
+- The format decides the anchor type that sync uses (section 9): `gp3`, `gp4`, `gp5`, `gp`, `gpx`, `musicxml`, `mxl`,
+  and `mscz` use `bar`; `midi` uses `tick`; `pdf` uses `pdf`; `txt` and `abc` use `text`.
+- The tab can be a score for any instrument. `tuning` and the Guitar Pro formats are a guitar-oriented part of the list,
+  not a limit on what a file can hold.
 
 ### 6.1 Multi-song PDFs (`startPage`, `endPage`, and `externalPath`)
 
-A single PDF, such as a songbook, can hold several songs. Each song is its own `.mtab` file, and `startPage` and
+A single PDF, such as a songbook, can hold several songs. Each song is its own `.mpak` file, and `startPage` and
 `endPage` give its 1-based inclusive page range inside that PDF. Both fields are allowed only when `format` is `pdf`.
 When both are present, `endPage` MUST be greater than or equal to `startPage`. When `pages` is also present, both
 `startPage` and `endPage` MUST be at most `pages`. When only `startPage` is set, the song runs from `startPage` to the
 end of the PDF; when only `endPage` is set, it runs from page 1 to `endPage`.
 
 The PDF itself may either be stored inside the archive (`path`, under `tab/`) or left outside the archive and referenced
-by `externalPath`, so that several `.mtab` files for songs from the same book can share one copy of the PDF instead of
+by `externalPath`, so that several `.mpak` files for songs from the same book can share one copy of the PDF instead of
 duplicating it in every archive:
 
 - `externalPath` follows the same safe relative path rules as archive entry names (section 3): UTF-8, `/` separated, no
   leading `/`, no backslash, no `.`, `..`, or empty segment, and no control characters.
-- When a reader opens a `.mtab` file from a directory on disk, it resolves `externalPath` inside that directory (and MUST
+- When a reader opens a `.mpak` file from a directory on disk, it resolves `externalPath` inside that directory (and MUST
   reject any path that escapes it; section 12). A reader with its own library MAY also locate the PDF by `tab.sha256`, or
   ask the user for the file when it is missing.
 - `tab.sha256` is still required when `externalPath` is used, and is the SHA-256 of the whole PDF file.
@@ -208,7 +210,7 @@ duplicating it in every archive:
 ### 6.2 One tab per file, and variations
 
 A file holds exactly one tab. A song with several tabs, for example a Guitar Pro file and a PDF of the same song, or two
-arrangements, is several `.mtab` files. Each one is a **variation** of the song. This specification does not define a
+arrangements, is several `.mpak` files. Each one is a **variation** of the song. This specification does not define a
 container for a set of variations.
 
 A reader MAY import a file as another variation of a song that it already has. How it finds that song (by `song.ids`, by
@@ -283,7 +285,7 @@ with its own code for that tab format. Rules:
   the source.
 - `offsetMs` places the embedded audio on the recording's timeline, like any other source. When the recording has sync
   points (section 9), they apply instead of the tab's own sync points. When the recording has no sync points in the
-  `.mtab` file, a reader MAY fall back to the sync points stored inside the `gp` file.
+  `.mpak` file, a reader MAY fall back to the sync points stored inside the `gp` file.
 - A tool MAY extract the audio into `audio/<name>` and prepend a `file` source to the same recording (or place it before
   the `embedded` source), with `derivedFrom` set to the embedded source's `id` (section 11). The `embedded` source stays,
   so the file still round trips.
@@ -328,7 +330,7 @@ together.
   `stem.trackName` is present and the track at that index has a different name, the reader looks for exactly one track
   with that name and uses it. If it finds none or several, it ignores the link and mutes nothing, because a wrong mute is
   worse than no mute. A reader MUST also ignore track links when the tab's `sha256` does not match the tab file, and
-  when the tab format is `pdf` or `txt`.
+  when the tab format is `pdf`, `txt`, or `abc`.
 - **Building a backing mix.** If the mix has `stemsComplete: true`, a reader MAY play all its stems except the ones
   linked to the track being practiced. A separate `backing` recording is then optional.
 - **A stem that is not aligned with its parent.** Do not use `stemOf` for it. Give it `role: "stem"` and `stem`, and set
@@ -385,16 +387,24 @@ recording's `sync` field refers to it.
   If exact timing matters, a writer SHOULD give the recording its own `sync` file.
 - Before the first point and after the last, a reader holds the first or last position. It MAY extrapolate instead.
 
-### 9.1 Anchor type `bar` (Guitar Pro tabs)
+### 9.1 Anchor type `bar` (Guitar Pro, MusicXML, and MuseScore tabs)
 
 | Field | Type | Meaning |
 |---|---|---|
-| `bar` | integer ≥ 0 | 0-based index of the bar in the score's master bar list. |
+| `bar` | integer ≥ 0 | 0-based index of the bar in the score's master bar list: the bars in the order that the file lists them, with repeats not expanded. |
 | `occurrence` | integer ≥ 0 | Which pass through that bar, counted in playback order. `0` is the first time the bar is played, and a bar inside a repeat has `occurrence` 1 on its second pass. The default is 0. |
 | `pos` | number, 0 to 1 | Position inside the bar, as a fraction of its length. The default is 0. |
 
 Points MUST NOT go backwards in playback order. Between two points, a reader SHOULD interpolate in beats using the
 score's tempo map. If the score has no tempo map, the reader SHOULD interpolate linearly in time.
+
+The master bar list of each format is:
+
+- Guitar Pro (`gp3`, `gp4`, `gp5`, `gp`, `gpx`): the score's master bars.
+- MusicXML (`musicxml`, `mxl`): the `<measure>` elements of the first `<part>`, in document order. Ignore the `number`
+  attribute: it can repeat, skip, or be non-numeric (pickup bars, endings). For `mxl`, use the root file that the
+  archive's `META-INF/container.xml` names.
+- MuseScore (`mscz`): the score's measures in the order that MuseScore lists them.
 
 ### 9.2 Anchor type `pdf`
 
@@ -427,13 +437,13 @@ score's tempo map. If the score has no tempo map, the reader SHOULD interpolate 
 | `line` | integer ≥ 0 | yes | 0-based line number. |
 | `col` | integer ≥ 0 | no | 0-based column, counted in Unicode code points. |
 
-- Count lines and columns on the decoded text of the tab file. Decode it as UTF-8, remove a leading byte order mark, and
+- Count lines and columns on the decoded text of the tab file (`txt` or `abc`). Decode it as UTF-8, remove a leading byte order mark, and
   replace each CRLF and each CR with LF. Columns count Unicode code points, not UTF-16 units or bytes.
-- `line` identifies a system. A writer SHOULD use the line of the system's top string row. A reader SHOULD accept any line
+- `line` identifies a system (for `abc`, a line of music in the source). A writer SHOULD use the line of the system's top string row. A reader SHOULD accept any line
   within a block of consecutive non-empty lines and treat it as that block.
 - A point without `col` is a **block anchor**: the playhead is somewhere in that block, and the reader shows the block. A
   point with `col` is a **column anchor**. In ASCII tab the string rows of a system line up, so `col` is the playhead
-  column for the whole system.
+  column for the whole system. In `abc`, `col` is a position in the source line, which is only approximate for the music.
 - A writer that knows the column of the bar or beat it is anchoring SHOULD write `col`. A writer that knows only the block
   MUST write a block anchor, and MUST NOT make up a `col`. A writer that has a finer position than a block but cannot
   express it as a column loses that detail. It MAY keep it in `x-` fields on the point, which other readers ignore.
@@ -443,6 +453,20 @@ score's tempo map. If the score has no tempo map, the reader SHOULD interpolate 
 - **Between points.** If the next point is a backward jump, or is in another block, the reader holds the earlier point
   until the next one. Otherwise, if both points are column anchors in the same block, the reader MAY interpolate. In every
   other case it holds.
+
+### 9.4 Anchor type `tick` (MIDI tabs)
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `tick` | integer ≥ 0 | yes | Position in MIDI ticks from the start of the file, in the file's own time division. |
+
+- A Standard MIDI File has no bars and no repeats. A point names a tick, and a reader can derive bars from the file's
+  time signature events when it wants to show them.
+- Points MUST NOT go backwards: `tick` MUST be greater than or equal to the previous point's `tick`.
+- Between two points, a reader SHOULD interpolate in ticks using the file's tempo map. If the file has none, it SHOULD
+  interpolate linearly in time.
+- Files that use SMPTE time division have no ticks per beat. A writer MAY still use `tick` for them, counting ticks as
+  the file defines them.
 
 ## 10. Reader requirements
 
@@ -466,7 +490,7 @@ A writer:
 1. MUST follow section 3.
 2. MUST write the manifest fields marked required.
 3. MUST write a valid sync file for each recording that it gives sync points to.
-4. MUST store an embedded tab file (`tab.path`) byte for byte (a `txt` tab as UTF-8).
+4. MUST store an embedded tab file (`tab.path`) byte for byte (a `txt` or `abc` tab as UTF-8).
 5. SHOULD write `generator`.
 6. SHOULD write audio entries Stored, and MUST use ZIP64 where section 3.1 requires it.
 7. SHOULD write a file in one pass over its audio, without holding the audio in memory.
@@ -492,7 +516,7 @@ A reader MUST protect against:
 
 - **Path traversal (zip slip).** Reject entries (and `tab.externalPath`) that break the name rules in section 3. When you
   extract an entry to disk, resolve its path inside a directory of your own choosing. When you resolve `tab.externalPath`,
-  resolve it inside the directory containing the `.mtab` file. Do not use a path from the archive or manifest as it is.
+  resolve it inside the directory containing the `.mpak` file. Do not use a path from the archive or manifest as it is.
 - **Decompression bombs.** Reject the archive, or stop reading, in any of these cases: an entry inflates to more than 100
   times its stored size, the manifest is over 1 MiB, a sync file is over 8 MiB, or the archive has more than 1000
   entries. A reader MAY use higher limits for `audio/` entries. Inflation is counted on the output, as it is produced (section 3.1).
@@ -516,14 +540,14 @@ A reader MUST protect against:
 
 ## 14. Copyright, patents, names
 
-- **Copyright.** A `.mtab` file can contain a tab and recordings that belong to other people. This specification grants
+- **Copyright.** A `.mpak` file can contain a tab and recordings that belong to other people. This specification grants
   no right to them. Writers and distributors are responsible for having the right to include what they include. A file
   can refer to a recording (`youtube`, `url`, `external`) instead of carrying it. A writer SHOULD do that when it does
   not hold the rights to the audio.
 - **Patents.** The authors will not assert patent claims against an implementation of this specification as published.
-- **Names.** "Multi-Track Tab" and the `.mtab` extension may be used freely to describe files and software that follow
+- **Names.** "Music Pack" and the `.mpak` extension may be used freely to describe files and software that follow
   this specification.
-- **Media type.** This specification uses `application/vnd.mtab+zip` provisionally. It is not registered.
+- **Media type.** This specification uses `application/vnd.mpak+zip` provisionally. It is not registered.
 
 ## 15. Open questions
 
@@ -533,4 +557,4 @@ These questions are open for a later version. Feedback from implementers would h
 2. Should the tab be optional, so that a file with only recordings and sync is valid? Version 1 says no.
 3. Should `stem.track` also accept a list, for a stem that mixes two tracks?
 4. Is the bar list of a `gp` (Guitar Pro 7 and later) file stable across versions of that format? Track and bar indices
-   need a test fixture.
+   need a test fixture. The same question applies to `mscz` across MuseScore versions.

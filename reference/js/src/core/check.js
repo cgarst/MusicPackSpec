@@ -10,7 +10,10 @@ const TUNING = /^[A-G][#b]?(-?[0-9])?$/;
 const DATE = /^\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
 const YT = /^[A-Za-z0-9_-]{11}$/;
 
-export const ANCHOR = { gp3: 'bar', gp4: 'bar', gp5: 'bar', gp: 'bar', gpx: 'bar', pdf: 'pdf', txt: 'text' };
+export const ANCHOR = {
+  gp3: 'bar', gp4: 'bar', gp5: 'bar', gp: 'bar', gpx: 'bar', musicxml: 'bar', mxl: 'bar', mscz: 'bar',
+  midi: 'tick', abc: 'text', pdf: 'pdf', txt: 'text',
+};
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isInt = Number.isInteger;
@@ -66,7 +69,7 @@ function checkRecording(r, at, ck) {
 export function manifestSchemaErrors(m) {
   const errs = [], ck = ctx(errs, '');
   if (!ck('<root>', isObj(m), 'must be an object')) return errs;
-  ck('/format', m.format === 'mtab', 'must be "mtab"');
+  ck('/format', m.format === 'mpak', 'must be "mpak"');
   ck('/version', m.version === 1, 'must be 1');
   ck('/tab', 'tab' in m, 'is required');
   if ('createdAt' in m) ck('/createdAt', isStr(m.createdAt) && DATE.test(m.createdAt), 'must be a date-time');
@@ -92,7 +95,7 @@ export function manifestSchemaErrors(m) {
     ck('/tab', hasPath !== hasExt, 'must have either path or externalPath, not both');
     if (hasPath) ck('/tab/path', isStr(t.path) && PATH.test(t.path), 'must be an archive path');
     if (hasExt) ck('/tab/externalPath', isStr(t.externalPath) && PATH.test(t.externalPath), 'must be a relative path');
-    ck('/tab/format', isStr(t.format) && t.format in ANCHOR, 'is required and must be one of gp3, gp4, gp5, gp, gpx, pdf, txt');
+    ck('/tab/format', isStr(t.format) && t.format in ANCHOR, `is required and must be one of ${Object.keys(ANCHOR).join(', ')}`);
     if ((hasExt || 'startPage' in t || 'endPage' in t) && 'format' in t)
       ck('/tab/format', t.format === 'pdf', 'must be "pdf" when externalPath, startPage or endPage is present');
     ck('/tab/sha256', isStr(t.sha256) && SHA.test(t.sha256), 'is required and must be lowercase hex sha256');
@@ -146,6 +149,9 @@ const barPoint = (p, at, ck) => {
   if ('occurrence' in p) ck(`${at}/occurrence`, isInt(p.occurrence) && p.occurrence >= 0, 'must be an integer >= 0');
   if ('pos' in p) ck(`${at}/pos`, isNum(p.pos) && p.pos >= 0 && p.pos <= 1, 'must be a number from 0 to 1');
 };
+const tickPoint = (p, at, ck) => {
+  ck(`${at}/tick`, isInt(p.tick) && p.tick >= 0, 'is required and must be an integer >= 0');
+};
 const unit = (v) => isNum(v) && v >= 0 && v <= 1;
 const pdfPoint = (p, at, ck) => {
   ck(`${at}/page`, isInt(p.page) && p.page >= 1, 'is required and must be an integer >= 1');
@@ -158,7 +164,7 @@ const textPoint = (p, at, ck) => {
   ck(`${at}/line`, isInt(p.line) && p.line >= 0, 'is required and must be an integer >= 0');
   if ('col' in p) ck(`${at}/col`, isInt(p.col) && p.col >= 0, 'must be an integer >= 0');
 };
-const POINT = { bar: barPoint, pdf: pdfPoint, text: textPoint };
+const POINT = { bar: barPoint, tick: tickPoint, pdf: pdfPoint, text: textPoint };
 
 /** Structure errors in a sync file, as strings. Empty when it matches schema/sync.schema.json. */
 export function syncSchemaErrors(s) {
@@ -166,7 +172,7 @@ export function syncSchemaErrors(s) {
   if (!ck('<root>', isObj(s), 'must be an object')) return errs;
   ck('/version', s.version === 1, 'must be 1');
   ck('/recording', isStr(s.recording) && ID.test(s.recording), 'is required and must be an id');
-  ck('/anchorType', s.anchorType in POINT, 'is required and must be bar, pdf or text');
+  ck('/anchorType', s.anchorType in POINT, 'is required and must be bar, tick, pdf or text');
   if ('updatedAt' in s) ck('/updatedAt', isStr(s.updatedAt) && DATE.test(s.updatedAt), 'must be a date-time');
   if (ck('/points', Array.isArray(s.points), 'is required and must be an array')) {
     s.points.forEach((p, i) => {

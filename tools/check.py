@@ -27,6 +27,13 @@ def rule_errors_manifest(m):
         errs.append("score.startPage exceeds score.pages")
     if "pages" in t and "endPage" in t and t["endPage"] > t["pages"]:
         errs.append("score.endPage exceeds score.pages")
+    alts = m.get("alternates", [])
+    aids = [a["id"] for a in alts if "id" in a]
+    if len(aids) != len(set(aids)):
+        errs.append("duplicate alternate ids")
+    for a in alts:
+        if a.get("format") in ANCHOR and t.get("format") in ANCHOR and ANCHOR[a["format"]] != ANCHOR[t["format"]]:
+            errs.append(f"alternate {a.get('id')}: anchor type of {a['format']} differs from the main score")
     ids = [r["id"] for r in recs]
     if len(ids) != len(set(ids)):
         errs.append("duplicate recording ids")

@@ -19,6 +19,22 @@
     },
     "song": { "$ref": "#/$defs/song" },
     "score": { "$ref": "#/$defs/score" },
+    "alternates": {
+      "type": "array",
+      "description": "Alternate scores derived from score; they share its sync points (SPEC 6.3).",
+      "items": {
+        "allOf": [
+          { "$ref": "#/$defs/score" },
+          {
+            "required": ["id"],
+            "properties": {
+              "id": { "$ref": "#/$defs/id" },
+              "label": { "type": "string" }
+            }
+          }
+        ]
+      }
+    },
     "recordings": {
       "type": "array",
       "items": { "$ref": "#/$defs/recording" }

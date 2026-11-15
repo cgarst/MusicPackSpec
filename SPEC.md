@@ -62,6 +62,7 @@ layout:
 ```
 manifest.json     the manifest (section 4)
 score/<name>        the score file, byte for byte as supplied (omitted when score.externalPath is used; section 6)
+                  and the files of any alternate scores (section 6.3)
 audio/<name>      optional audio files
 sync/<name>.json  optional sync files (section 9)
 x-<name>/...      optional extension files of one application (section 13.1)
@@ -113,6 +114,7 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 | `generator` | `{ name, version? }` | no | The software that wrote the file. |
 | `song` | object | no | Section 5. May be empty or absent. |
 | `score` | object | yes | Section 6. |
+| `alternates` | array | no | Alternate scores derived from `score`, which share its sync points. Section 6.3. |
 | `recordings` | array | no | Section 7. |
 
 Other fields are allowed. A reader MUST ignore a field it does not know. Application-private fields SHOULD start with
@@ -212,24 +214,67 @@ duplicating it in every archive:
 
 ### 6.2 One score per file, and variations
 
-A file holds exactly one score. A song with several scores, for example a Guitar Pro file and a PDF of the same song, or two
-arrangements, is several `.mpak` files. Each one is a **variation** of the song. This specification does not define a
+A file holds exactly one main score. A song with several independent scores, for example a Guitar Pro file and a PDF of
+the same song, or two arrangements, is several `.mpak` files. (A simplified or re-instrumented version of the main
+score that keeps its structure is an alternate, not a variation; section 6.3.) Each one is a **variation** of the song. This specification does not define a
 container for a set of variations.
 
 A reader MAY import a file as another variation of a song that it already has. How it finds that song (by `song.ids`, by
 `title` and `artist`, or by asking the user) is outside this specification (section 10). When it does:
 
 1. The file's score, recordings and sync stay together as one variation. Sync points belong to the score that `score.sha256`
-   identifies and MUST NOT be applied to another variation, even of the same song, because their anchors are written
+   identifies (and to that score's alternates, section 6.3) and MUST NOT be applied to another variation, even of the same song, because their anchors are written
    against different score bytes and may have different anchor types.
 2. The reader MUST NOT overwrite or remove the sync points, recordings or score of a variation it already has, unless the
    user asks it to. A file whose `score.sha256` matches an existing variation is the same variation: the reader SHOULD NOT
    add a duplicate, and MAY offer to add the file's recordings and sync points to it.
 3. Variations MAY share a recording. Two recordings with the same `youtube` `videoId`, or the same audio `sha256`, are the
    same recording, and a reader MAY store it once. Sync is still kept per variation.
-4. A file holds one variation, so an export of a song holds the data of one score. The recordings, sync points and score of the
+4. A file holds one variation, so an export of a song holds the data of one main score and its alternates. The recordings, sync points and score of the
    song's other variations are not in it. A tool that exports several variations writes one file for each, and SHOULD put
    the same `song` metadata in each, so that a reader can match them.
+
+### 6.3 Alternate scores
+
+An **alternate** is another score that is derived from the main score and keeps its structure, so that the main score's
+sync points are valid for it unchanged. Examples: an easy or simplified arrangement, a version transposed or with
+different fingering, a bass-only or vocals-only reduction, a MusicXML export of a Guitar Pro score, a re-engraved
+copy. Alternates are listed in the manifest's `alternates` array. Each item has all the fields of `score` (section 6),
+plus:
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `id` | string | yes | Identifier, unique among the alternates (same character rules as recording ids). |
+| `label` | string | no | Name for display, such as `"Easy"` or `"Bass reduction"`. |
+
+```json
+"score": { "path": "score/song.gp", "format": "gp", "sha256": "..." },
+"alternates": [
+  { "id": "easy", "label": "Easy", "path": "score/song-easy.gp", "format": "gp", "sha256": "..." },
+  { "id": "xml",  "label": "MusicXML export", "path": "score/song.musicxml", "format": "musicxml", "sha256": "..." }
+]
+```
+
+- **Same sync data.** The file has one set of sync points per recording, written against the main `score` (section 9). A
+  reader applies those points to an alternate as they are. The alternate MUST therefore have the same anchor type as the
+  main score (section 9), and MUST line up with it: bar `n` (with its `occurrence` and `pos`) is the same music in both,
+  and has the same repeat and jump structure; for `tick` anchors, the same tick resolution and tempo map; for `text`
+  anchors, the same lines. A writer MUST NOT list a score as an alternate when its structure differs (a different bar
+  count, a re-ordered form, a different layout). That score is a variation (section 6.2), in its own file with its
+  own sync. A `pdf` alternate is rarely derivable this way: it is valid only when its pages and coordinates match the
+  main PDF's.
+- **The main score stays the reference.** `score` is the default and is the score that sync, `sha256` checks, and stem
+  track links are written against. A reader shows the main score unless the user picks an alternate. Order in
+  `alternates` is a display order only.
+- **Files.** Each alternate has `path` or `externalPath` under the same rules as the main score (section 6, 6.1), and its
+  own `sha256`. A writer stores an embedded alternate byte for byte. An alternate's `sha256` is checked on its own: a
+  mismatch means a reader SHOULD warn and MAY refuse to show that alternate, and does not affect the main score.
+- **Track links.** `stem.track` counts the main score's tracks (section 8). A reader MUST NOT apply a `stem.track` index to
+  an alternate. It MAY find the track by `stem.trackName`, when exactly one track in the alternate has that name.
+  Otherwise it mutes nothing.
+- **Tuning and metadata** are per alternate. An alternate MAY have a different `tuning` (for example drop D), even though
+  its bar structure matches.
+- A reader that does not know `alternates` ignores it (section 10), and shows only the main score.
 
 
 ## 7. Recordings
@@ -363,7 +408,8 @@ recording's `sync` field refers to it.
 ```
 
 - `recording` is the id of the recording that the points belong to.
-- `anchorType` MUST match the score format (section 6).
+- `anchorType` MUST match the score format (section 6). The points are written against the main score and also apply to
+  its alternates (section 6.3).
 - A point MAY carry `x-` fields. A reader ignores any field of a point that it does not know.
 - `points` MUST be sorted by `timeMs`, strictly increasing. Each point has:
   - `timeMs`: milliseconds on the recording's timeline, 0 or more.
@@ -482,7 +528,7 @@ A reader:
 3. MUST ignore fields, entries, roles, sources and `ids` keys it does not know.
 4. MUST reject `version` greater than it supports, with a message saying the file needs a newer reader.
 5. MUST treat everything inside the archive as untrusted input (section 12).
-6. SHOULD warn when the score's `sha256` does not match the file.
+6. SHOULD warn when the score's `sha256` (or an alternate's) does not match the file.
 7. SHOULD NOT fail on a missing optional part. A file with only a score is a valid file.
 
 Library matching, merging a file into a song as another variation (section 6.2), MusicBrainz lookups, and similar enrichment are application features. They are outside this

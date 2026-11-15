@@ -115,6 +115,13 @@ export function manifestRuleErrors(m) {
   if ('startPage' in t && 'endPage' in t && t.endPage < t.startPage) errs.push('score.endPage must be >= score.startPage');
   if ('pages' in t && 'startPage' in t && t.startPage > t.pages) errs.push('score.startPage exceeds score.pages');
   if ('pages' in t && 'endPage' in t && t.endPage > t.pages) errs.push('score.endPage exceeds score.pages');
+  const alts = Array.isArray(m.alternates) ? m.alternates : [];
+  const aids = alts.filter((a) => a && 'id' in a).map((a) => a.id);
+  if (new Set(aids).size !== aids.length) errs.push('duplicate alternate ids');
+  for (const a of alts) {
+    if (a && ANCHOR[a.format] && ANCHOR[t.format] && ANCHOR[a.format] !== ANCHOR[t.format])
+      errs.push(`alternate ${a.id}: anchor type of ${a.format} differs from the main score`);
+  }
   const ids = recs.map((r) => r.id);
   if (new Set(ids).size !== ids.length) errs.push('duplicate recording ids');
   for (const r of recs) {

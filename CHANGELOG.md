@@ -2,6 +2,11 @@
 
 ## Version 1
 
+- Added alternate scores (section 6.3). The manifest's optional `alternates` array lists scores that are derived from the
+  main score and keep its structure, such as an easy arrangement or a MusicXML export. The main score's sync points apply
+  to them unchanged, so they must have the same anchor type and line up with it. Each alternate has its own `sha256`,
+  and `stem.track` links are not applied to alternates.
+
 - Added section 13.1, Extensions. It covers `x-` fields on any object, `x-<name>/` directories in the archive, own values
   in open vocabularies, and the rule that an extension never changes a defined field and is always safe to ignore.
 

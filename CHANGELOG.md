@@ -2,6 +2,18 @@
 
 ## Version 1
 
+- Added `without` to a recording (section 8, "Backing tracks and stems"): the ids of the stems whose parts the recording's
+  audio lacks. A reader MAY play the recording together with any of those stems, so a backing track that lacks two
+  guitar parts can be played with one of them added back, with no full mix in the file. A listed stem must be time-aligned
+  with the recording at offset 0. Ignorable by older readers.
+
+- Added the beat file. A recording can name one in `beats` (a file under `beats/`): the beats of the recording on its
+  timeline, each optionally marked as a downbeat, and optional named `sections`. It describes the recording alone, so it
+  names no score and is not sync, and a reader must not derive sync points or bar numbers from it. It is inherited through
+  `syncFrom` (shifted by `syncOffsetMs`) and `stemOf`. Added the optional song fields `genre` and
+  `publisher`. All additions are optional and ignorable by older readers. Added the schema `schema/beats.schema.json`
+  and the example `beats`.
+
 - Added `scoreTracks` to a recording (section 7, "Tracks in a recording"). It maps a score `id` to `omits` or `only`, the
   indexes of the score's tracks that are missing from the audio or the only ones in it, so a reader can mute them for a
   backing track or a solo. An optional `names` list holds the tracks' names as a check: if a name differs from the track at

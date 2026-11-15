@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "recording": "mix",
+  "score": "main",
+  "anchorType": "pdf",
+  "points": [
+    { "timeMs": 500, "page": 1 },
+    { "timeMs": 2500, "page": 1, "x": 0.08, "y": 0.12 },
+    { "timeMs": 4500, "page": 1, "x": 0.45, "y": 0.12 }
+  ]
+}

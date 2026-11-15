@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "recording": "mix",
+  "beats": [
+    { "timeMs": 500 },
+    { "timeMs": 1000 },
+    { "timeMs": 1500 },
+    { "timeMs": 2000 },
+    { "timeMs": 2500, "downbeat": true },
+    { "timeMs": 3000 },
+    { "timeMs": 3500 },
+    { "timeMs": 4000 },
+    { "timeMs": 4500, "downbeat": true }
+  ],
+  "sections": [
+    { "name": "Count-in", "type": "intro", "timeMs": 500 },
+    { "name": "Verse 1", "type": "verse", "timeMs": 2500 }
+  ]
+}

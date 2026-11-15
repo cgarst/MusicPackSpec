@@ -65,6 +65,7 @@ score/<name>      the score files, byte for byte as supplied (a score that uses 
                   including the files of alternate scores (section 6.3)
 audio/<name>      optional audio files
 sync/<name>.json  optional sync files (section 9)
+beats/<name>.json optional beat files (section 7, "Beat file")
 x-<name>/...      optional extension files of one application (section 13.1)
 ```
 
@@ -90,7 +91,7 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 1. A writer MUST use ZIP64 where the ZIP format requires it: an entry or offset of 4 GiB or more, or 65535 or more
    entries. A reader MUST read ZIP64.
 2. A reader MUST be able to open a file without reading its audio. Opening needs only the end of the archive, the
-   central directory, the manifest, the score, and the sync files. The reader SHOULD read these by
+   central directory, the manifest, the score, the sync files, and the beat files. The reader SHOULD read these by
    random access instead of loading the whole archive into memory.
 3. A reader MUST take sizes, offsets and checksums from the central directory, and MUST ignore any different value in a
    local header. A writer MAY use data descriptors.
@@ -100,7 +101,7 @@ A file can hold hours of audio, so this specification sets no size limit of its 
    use the sizes in the archive for this count.
 6. A reader MUST NOT hash audio in order to open a file. It MAY check a `sha256` of an audio source later, on demand or in
    the background.
-7. A reader reads the score, the manifest, and the sync files whole. A reader MAY refuse a score larger than 256 MiB.
+7. A reader reads the score, the manifest, the sync files, and the beat files whole. A reader MAY refuse a score larger than 256 MiB.
 
 ## 4. Manifest
 
@@ -130,6 +131,8 @@ Other fields are allowed. A reader MUST ignore a field it does not know. A field
 | `composer` | string | Composer, for classical and instrumental pieces. |
 | `album` | string | Album or release title. |
 | `year` | integer | Year of release. |
+| `genre` | string | Genre, as free text. |
+| `publisher` | string | Publisher of the song or the arrangement. |
 | `trackNumber` | integer | Track number on the release. |
 | `mediumNumber` | integer | Disc number. |
 | `length` | integer | Length of the song in milliseconds. |
@@ -311,9 +314,11 @@ copy. Alternates are listed in the `alternates` array of their parent. Each item
 | `label` | string | no | Display name. |
 | `sources` | array | yes | Ordered forms of this recording. May be empty. |
 | `sync` | object | no | Archive paths of this recording's sync files, one for each score: a map from a score `id` to a path. Section 9. |
-| `syncFrom` | string | no | Id of a recording whose sync points this one shares, for each score that has no `sync` entry here. |
-| `syncOffsetMs` | integer | no | Milliseconds added to the points shared through `syncFrom`. May be negative. Section 9. |
+| `syncFrom` | string | no | Id of a recording whose sync points and beat file this one shares, for each score that has no `sync` entry here, and when this recording has no `beats` entry. |
+| `syncOffsetMs` | integer | no | Milliseconds added to the points and beats shared through `syncFrom`. May be negative. Section 9. |
+| `beats` | string | no | Archive path of this recording's beat file, under `beats/`. One for each recording, not for each score. See "Beat file". |
 | `scoreTracks` | object | no | Which tracks of each score the audio has or lacks: a map from a score `id` to `{ "omits": [...] }` or `{ "only": [...] }`. See "Tracks in a recording". |
+| `without` | string array | no | Ids of stems (recordings with role `stem`) whose parts are not in this recording's audio. Section 8. |
 | `stemOf`, `stem`, `stemsComplete` | | no | Section 8. |
 
 ### Roles
@@ -423,6 +428,58 @@ Each recording has one timeline that starts at 0 ms. Sync points (section 9) are
 one source. If you replace a source with another form of the same recording, the points stay valid. A source that starts
 earlier or later than the timeline says so with `offsetMs`.
 
+### Beat file
+
+A beat file says where the beats of one recording fall on its timeline, and where its sections begin. It describes the
+recording only, so it names no score and has no anchor type. It is not sync (section 9). A click track, a tapped grid,
+and a grid measured from the audio can all be written as one. The recording's `beats` field names it. Its JSON Schema is
+`schema/beats.schema.json`.
+
+```json
+{
+  "version": 1,
+  "recording": "mix",
+  "beats": [
+    { "timeMs": 1200 },
+    { "timeMs": 1700, "downbeat": true },
+    { "timeMs": 2200 }
+  ],
+  "sections": [
+    { "name": "Intro", "type": "intro", "timeMs": 1200 },
+    { "name": "Verse 1", "type": "verse", "timeMs": 9200 }
+  ]
+}
+```
+
+- `recording` is the id of the recording whose `beats` entry names the file. It MUST equal that id.
+- `beats` is an array, sorted by `timeMs`, strictly increasing. It may be empty. Each beat has:
+  - `timeMs`: milliseconds on the recording's timeline, 0 or more.
+  - `downbeat` (optional): `true` when the beat is the first beat of a bar. The default is `false`. A file in which no
+    beat has `downbeat` says nothing about where bars start.
+- `sections` (optional) is an array of named parts of the recording, sorted by `timeMs`, strictly increasing. A section
+  runs until the next one starts, or to the end of the recording. Each section has:
+  - `name`: a name for display, such as `"Verse 1"`.
+  - `type` (optional): an open vocabulary. Suggested: `intro`, `verse`, `chorus`, `bridge`, `solo`, `interlude`,
+    `outro`. A reader that does not know a `type` shows the `name`.
+  - `timeMs`: where the section starts, as for a beat.
+- Beats before the music starts, such as a count-in, are ordinary beats. The file has no field for them, and a reader
+  that wants the count-in counts the beats before the first section or the first sync point.
+- **Resolution.** To find the beat file of recording R:
+  1. If R has a `beats` entry, use that file. Its times are already on R's timeline.
+  2. Otherwise, if R has `syncFrom`, find the beat file of that recording and add R's `syncOffsetMs` (default 0) to every
+     `timeMs`.
+  3. Otherwise, if R has `stemOf`, find the beat file of that recording. Add no offset.
+  4. Otherwise R has no beat file.
+
+  A chain that returns to a recording it already visited is invalid. A reader drops any beat or section whose `timeMs`
+  ends up below 0.
+- **Use.** A reader MAY use the beats for a metronome, for a beat counter, for looping, for slowing the audio down on
+  beat, and the sections for a section list and for looping a section. A reader MUST NOT derive sync points from a beat
+  file, and MUST NOT take a bar number from it. Only a sync file (section 9) aligns a score to a recording.
+- **Writers.** A writer writes the beats that it measured or was given. It MUST NOT invent a `downbeat`, and it MUST NOT
+  fill a gap in a grid with made-up beats.
+- A beat file is at most 8 MiB (section 12).
+
 ## 8. Stems
 
 A stem is one part of a mix, such as one instrument. The stems of one split are time-aligned, and a reader plays them
@@ -457,6 +514,19 @@ together.
   linked to the track being played. A separate `backing` recording is then optional.
 - **A stem that is not aligned with its parent.** Do not use `stemOf` for it. Give it `role: "stem"` and `stem`, and set
   `syncFrom` to the mix, with a `syncOffsetMs` (section 9).
+- **Backing tracks and stems (`without`).** A recording, usually a `backing` one, can list in `without` the ids of the
+  stems whose parts its audio lacks. When the recording is the mix with those parts taken out, a reader MAY offer each
+  listed stem as an addition, and play the recording and the chosen stems together, each with its own level. This gives
+  a backing track for a player who wants to hear one of several parts of an instrument, with no full mix in the file.
+  Rules:
+  - Every id MUST name another recording of the file whose role is `stem`. An id MUST NOT repeat.
+  - A listed stem MUST be time-aligned with the recording at offset 0: the two are played from the same position of
+    their sources, so the stem's audio and the recording's audio line up when started together. A writer MUST NOT list a
+    stem that would need an offset. A recording whose audio starts at another time than its stems' (for example with a
+    count-in, when the stems have none) has no `without`.
+  - `without` is about the audio. It does not say which tracks of a score are missing, which `scoreTracks` does
+    (section 7). A recording MAY have both.
+  - A reader that does not know `without` plays the recording as it is.
 - **Stems with no mix.** If the file has stems but no recording that they were split from, and the first
   recording is one of those stems, the default is all of those stems played together.
 - The stems of one split share one timeline and one duration.
@@ -510,7 +580,7 @@ recording's `sync` field refers to it, under the `id` of the score:
   recording it already visited is invalid. A reader drops any point whose `timeMs` ends up below 0.
 - **`syncOffsetMs`.** Use it when a recording has the same tempo and structure as another but starts earlier or later,
   for example a backing track with a count-in. A positive value means the music starts later than in the recording
-  that it shares points with. `syncOffsetMs` MUST NOT appear without `syncFrom`. It applies only to the scores for which R has no `sync` entry.
+  that it shares points with. `syncOffsetMs` MUST NOT appear without `syncFrom`. It applies only to the scores for which R has no `sync` entry. It applies in the same way to the beat file that R shares through `syncFrom` (section 7, "Beat file").
 - **What can be shared.** Sharing assumes the same structure and tempo. A recording with a different arrangement or
   tempo, such as a live version, needs its own sync files. A sync file belongs to one recording and one score, because its
   `recording` and `score` fields MUST equal the ones in the manifest. Two entries cannot point at the same file. Use
@@ -680,7 +750,7 @@ A reader MUST protect against:
   extract an entry to disk, resolve its path inside a directory of your own choosing. When you resolve an `externalPath`,
   resolve it inside the directory that contains the `.mpak` file. Do not use a path from the archive or manifest as it is.
 - **Decompression bombs.** Reject the archive, or stop reading, in any of these cases: an entry inflates to more than 100
-  times its stored size, the manifest is over 1 MiB, a sync file is over 8 MiB, or the archive has more than 1000
+  times its stored size, the manifest is over 1 MiB, a sync file or a beat file is over 8 MiB, or the archive has more than 1000
   entries. A reader MAY use higher limits for `audio/` entries. A reader counts inflation on the output as it is produced (section 3.1).
 - **Duplicate and overlapping entries.** Reject archives whose central directory has duplicate names or overlapping data.
 - **Active content.** A PDF can contain scripts and links, and an audio file can be malformed. Open both with the same

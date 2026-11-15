@@ -1,0 +1,6 @@
+{ "format": "mpak", "version": 1,
+  "scores": [{ "id": "main", "path": "score/a.txt", "format": "txt", "sha256": "0000000000000000000000000000000000000000000000000000000000000000" }],
+  "recordings": [
+    { "id": "mix", "role": "original", "sources": [] },
+    { "id": "bk", "role": "backing", "without": ["mix"], "sources": [] }
+  ] }

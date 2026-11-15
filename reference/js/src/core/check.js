@@ -58,6 +58,8 @@ function checkRecording(r, at, ck) {
     }
   if ('syncFrom' in r) ck(`${at}/syncFrom`, isStr(r.syncFrom) && ID.test(r.syncFrom), 'must be an id');
   if ('syncOffsetMs' in r) ck(`${at}/syncOffsetMs`, isInt(r.syncOffsetMs), 'must be an integer');
+  if ('beats' in r) ck(`${at}/beats`, isStr(r.beats) && PATH.test(r.beats), 'must be an archive path');
+  if ('without' in r) ck(`${at}/without`, Array.isArray(r.without) && r.without.every((x) => isStr(x) && ID.test(x)) && new Set(r.without).size === r.without.length, 'must be an array of distinct ids');
   if ('stemOf' in r) ck(`${at}/stemOf`, isStr(r.stemOf) && ID.test(r.stemOf), 'must be an id');
   if ('stemsComplete' in r) ck(`${at}/stemsComplete`, typeof r.stemsComplete === 'boolean', 'must be a boolean');
   if ('stem' in r && ck(`${at}/stem`, isObj(r.stem), 'must be an object')) {
@@ -123,6 +125,7 @@ export function manifestSchemaErrors(m) {
     const s = m.song;
     for (const k of ['title', 'artist', 'composer', 'album']) if (k in s) ck(`/song/${k}`, isStr(s[k]), 'must be a string');
     if ('year' in s) ck('/song/year', isInt(s.year), 'must be an integer');
+    for (const k of ['genre', 'publisher']) if (k in s) ck(`/song/${k}`, isStr(s[k]), 'must be a string');
     for (const k of ['trackNumber', 'mediumNumber', 'length']) if (k in s) ck(`/song/${k}`, isInt(s[k]) && s[k] >= 0, 'must be an integer >= 0');
     if ('ids' in s && ck('/song/ids', isObj(s.ids), 'must be an object')) {
       if ('isrc' in s.ids) ck('/song/ids/isrc', isStr(s.ids.isrc), 'must be a string');
@@ -168,6 +171,12 @@ export function manifestRuleErrors(m) {
       const list = v && (v.omits || v.only);
       if (v && Array.isArray(v.names) && Array.isArray(list) && v.names.length !== list.length) errs.push(`${r.id}.scoreTracks.${k}: names must have one name for each index`);
     }
+    for (const w of Array.isArray(r.without) ? r.without : []) {
+      const t = recs.find((x) => x.id === w);
+      if (!t) errs.push(`${r.id}.without names unknown recording ${w}`);
+      else if (t.role !== 'stem') errs.push(`${r.id}.without names ${w}, which is not a stem`);
+      else if (w === r.id) errs.push(`${r.id}.without names itself`);
+    }
     const srcIds = (r.sources || []).filter((s) => 'id' in s).map((s) => s.id);
     if (new Set(srcIds).size !== srcIds.length) errs.push(`${r.id}: duplicate source ids`);
     for (const s of r.sources || []) {
@@ -183,6 +192,16 @@ export function manifestRuleErrors(m) {
       const next = recs.find((x) => x.id === (cur.syncFrom || cur.stemOf));
       if (!next) break;
       if (seen.has(next.id)) { errs.push(`sync reference cycle at ${next.id}`); break; }
+      seen.add(next.id); cur = next;
+    }
+  }
+  for (const r of recs) {
+    const seen = new Set([r.id]);
+    let cur = r;
+    while (!('beats' in cur) && (cur.syncFrom || cur.stemOf)) {
+      const next = recs.find((x) => x.id === (cur.syncFrom || cur.stemOf));
+      if (!next) break;
+      if (seen.has(next.id)) { errs.push(`beats reference cycle at ${next.id}`); break; }
       seen.add(next.id); cur = next;
     }
   }
@@ -248,4 +267,40 @@ export function syncRuleErrors(s, scoreFormat) {
 export function validateSync(s, scoreFormat) {
   const errs = syncSchemaErrors(s);
   return errs.length ? errs : syncRuleErrors(s, scoreFormat);
+}
+
+/** Structure errors in a beat file, as strings. Empty when it matches schema/beats.schema.json. */
+export function beatsSchemaErrors(b) {
+  const errs = [], ck = ctx(errs, '');
+  if (!ck('<root>', isObj(b), 'must be an object')) return errs;
+  ck('/version', b.version === 1, 'must be 1');
+  ck('/recording', isStr(b.recording) && ID.test(b.recording), 'is required and must be an id');
+  if (ck('/beats', Array.isArray(b.beats), 'is required and must be an array')) b.beats.forEach((x, i) => {
+    const at = `/beats/${i}`;
+    if (!ck(at, isObj(x), 'must be an object')) return;
+    ck(`${at}/timeMs`, isNum(x.timeMs) && x.timeMs >= 0, 'is required and must be a number >= 0');
+    if ('downbeat' in x) ck(`${at}/downbeat`, typeof x.downbeat === 'boolean', 'must be a boolean');
+  });
+  if ('sections' in b && ck('/sections', Array.isArray(b.sections), 'must be an array')) b.sections.forEach((x, i) => {
+    const at = `/sections/${i}`;
+    if (!ck(at, isObj(x), 'must be an object')) return;
+    ck(`${at}/name`, isStr(x.name) && x.name.length > 0, 'is required and must be a non-empty string');
+    if ('type' in x) ck(`${at}/type`, isStr(x.type) && x.type.length > 0, 'must be a non-empty string');
+    ck(`${at}/timeMs`, isNum(x.timeMs) && x.timeMs >= 0, 'is required and must be a number >= 0');
+  });
+  return errs;
+}
+
+export function beatsRuleErrors(b) {
+  const errs = [];
+  for (const k of ['beats', 'sections']) {
+    const t = (b[k] || []).map((x) => x.timeMs);
+    if (t.some((v, i) => i && v <= t[i - 1])) errs.push(`${k}: timeMs not strictly increasing`);
+  }
+  return errs;
+}
+
+export function validateBeats(b) {
+  const errs = beatsSchemaErrors(b);
+  return errs.length ? errs : beatsRuleErrors(b);
 }

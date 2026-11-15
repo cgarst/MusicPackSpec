@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "recording": "click",
+  "beats": [
+    { "timeMs": 0, "downbeat": true },
+    { "timeMs": 500 },
+    { "timeMs": 1000 },
+    { "timeMs": 1500 }
+  ]
+}

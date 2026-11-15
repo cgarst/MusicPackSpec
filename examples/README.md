@@ -23,3 +23,4 @@ reference/js/bin/mpak.js pack <folder> out.mpak`. The tool sets the hashes of th
 | `midi` | A MIDI file with tick sync. |
 | `alphatex` | An alphaTex score with bar sync. |
 | `abc` | An ABC notation score with line sync. |
+| `beats` | Beat files: a full mix with a beat grid and sections, a stem and a backing track that inherit it (the backing track through `syncFrom` with an offset), a second backing track that lists the stem it lacks in `without`, and a click track with its own grid. It also has the optional `genre` and `publisher`. |

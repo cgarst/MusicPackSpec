@@ -11,6 +11,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load = lambda p: json.load(open(p))
 manifest_v = Draft202012Validator(load(f"{ROOT}/schema/manifest.schema.json"))
 sync_v = Draft202012Validator(load(f"{ROOT}/schema/sync.schema.json"))
+beats_v = Draft202012Validator(load(f"{ROOT}/schema/beats.schema.json"))
 ANCHOR = {"gp3": "bar", "gp4": "bar", "gp5": "bar", "gp": "bar", "gpx": "bar", "musicxml": "bar", "mxl": "bar",
           "mscz": "bar", "alphatex": "bar", "midi": "tick", "abc": "text", "pdf": "pdf", "txt": "text"}
 
@@ -53,12 +54,27 @@ def rule_errors_manifest(m):
             lst = v.get("omits", v.get("only"))
             if "names" in v and lst is not None and len(v["names"]) != len(lst):
                 errs.append(f"{r['id']}.scoreTracks.{k}: names must have one name for each index")
+        for w in r.get("without", []):
+            t = next((x for x in recs if x["id"] == w), None)
+            if t is None:
+                errs.append(f"{r['id']}.without names unknown recording {w}")
+            elif t.get("role") != "stem":
+                errs.append(f"{r['id']}.without names {w}, which is not a stem")
         sids_src = [s["id"] for s in r.get("sources", []) if "id" in s]
         for s in r.get("sources", []):
             if "derivedFrom" in s and s["derivedFrom"] not in sids_src:
                 errs.append(f"{r['id']}: derivedFrom names unknown source {s['derivedFrom']}")
             if s.get("type") == "embedded" and "score" in s and s["score"] not in sids:
                 errs.append(f"{r['id']}: source names unknown score {s['score']}")
+    return errs
+
+
+def rule_errors_beats(b):
+    errs = []
+    for k in ("beats", "sections"):
+        t = [x["timeMs"] for x in b.get(k, [])]
+        if any(y <= x for x, y in zip(t, t[1:])):
+            errs.append(f"{k}: timeMs not strictly increasing")
     return errs
 
 
@@ -90,6 +106,15 @@ for mp in sorted(glob.glob(f"{ROOT}/examples/*/manifest.json")):
                 errs.append(f"{rel}: recording id mismatch")
             if s.get("score") != sid:
                 errs.append(f"{rel}: score id mismatch")
+        if "beats" in r:
+            bp = os.path.join(d, r["beats"])
+            if not os.path.exists(bp):
+                errs.append(f"{r['id']}: missing {r['beats']}")
+            else:
+                b = load(bp)
+                errs += [f"{r['beats']}: {e}" for e in schema_errors(beats_v, b) + rule_errors_beats(b)]
+                if b.get("recording") != r["id"]:
+                    errs.append(f"{r['beats']}: recording id mismatch")
     print(("FAIL " if errs else "ok   ") + os.path.relpath(mp, ROOT))
     for e in errs:
         print("     ", e)
@@ -97,11 +122,13 @@ for mp in sorted(glob.glob(f"{ROOT}/examples/*/manifest.json")):
 
 for p in sorted(glob.glob(f"{ROOT}/conformance/invalid/*.json")):
     name = os.path.basename(p)
-    v = sync_v if name.startswith("sync-") else manifest_v
+    v = sync_v if name.startswith("sync-") else beats_v if name.startswith("beats-") else manifest_v
     doc = load(p)
     errs = schema_errors(v, doc)
     if not errs and name.startswith("manifest-"):
         errs = rule_errors_manifest(doc)
+    if not errs and name.startswith("beats-"):
+        errs = rule_errors_beats(doc)
     print(("ok   " if errs else "FAIL ") + "invalid/" + name + ("" if errs else "  (was accepted)"))
     bad += not errs
 

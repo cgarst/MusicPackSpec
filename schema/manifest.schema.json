@@ -67,6 +67,8 @@
         "artist": { "type": "string" },
         "composer": { "type": "string" },
         "album": { "type": "string" },
+        "genre": { "type": "string" },
+        "publisher": { "type": "string" },
         "year": { "type": "integer" },
         "trackNumber": { "type": "integer", "minimum": 0 },
         "mediumNumber": { "type": "integer", "minimum": 0 },
@@ -153,7 +155,8 @@
           "additionalProperties": { "$ref": "#/$defs/archivePath" }
         },
         "syncFrom": { "$ref": "#/$defs/id" },
-        "syncOffsetMs": { "type": "integer", "description": "Added to the points inherited through syncFrom. May be negative." },
+        "syncOffsetMs": { "type": "integer", "description": "Added to the points and beats inherited through syncFrom. May be negative." },
+        "beats": { "$ref": "#/$defs/archivePath", "description": "Beat file of this recording (SPEC 7, Beat file)." },
         "scoreTracks": {
           "type": "object",
           "description": "Tracks present in or missing from the audio, keyed by score id (SPEC 7).",
@@ -167,6 +170,12 @@
             },
             "oneOf": [{ "required": ["omits"] }, { "required": ["only"] }]
           }
+        },
+        "without": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Ids of stems whose parts are not in this recording's audio (SPEC 8).",
+          "items": { "$ref": "#/$defs/id" }
         },
         "stemOf": { "$ref": "#/$defs/id" },
         "stemsComplete": { "type": "boolean" },

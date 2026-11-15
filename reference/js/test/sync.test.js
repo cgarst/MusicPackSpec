@@ -104,3 +104,46 @@ test('a sync entry that names an unknown score is refused', async () => {
   const bytes = await concatParts((await zipParts([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]])).parts);
   await assert.rejects(() => openMpak(bytesSource(bytes)), /unknown score/);
 });
+
+async function beatBundle(recordings, beatFiles) {
+  const m = { ...await goodManifest(), recordings };
+  const b = await base();
+  const files = [{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]];
+  for (const [name, doc] of Object.entries(beatFiles)) files.push({ name, data: u8(JSON.stringify(doc)) });
+  return openMpak(bytesSource(await concatParts((await zipParts(files)).parts)));
+}
+const grid = (rec, t, extra = {}) => ({ version: 1, recording: rec, beats: t.map((timeMs) => ({ timeMs })), ...extra });
+const btimes = (f) => f.beats.map((x) => x.timeMs);
+
+test('a beat file is read, and shifted through syncFrom and not through stemOf', async () => {
+  const r = await beatBundle([
+    { id: 'a', role: 'original', beats: 'beats/a.json', sources: [] },
+    { id: 'b', role: 'backing', syncFrom: 'a', syncOffsetMs: 2000, sources: [] },
+    { id: 's', role: 'stem', stemOf: 'a', sources: [] },
+    { id: 'n', role: 'backing', sources: [] },
+  ], { 'beats/a.json': grid('a', [0, 500, 1000], { sections: [{ name: 'Intro', timeMs: 0 }] }) });
+  assert.deepEqual(r.warnings, []);
+  assert.deepEqual(btimes(r.beats('a')), [0, 500, 1000]);
+  assert.deepEqual(btimes(r.beats('b')), [2000, 2500, 3000]);
+  assert.equal(r.beats('b').sections[0].timeMs, 2000);
+  assert.deepEqual(btimes(r.beats('s')), [0, 500, 1000]);
+  assert.equal(r.beats('b').recording, 'b');
+  assert.equal(r.beats('n'), null);
+});
+test('a negative offset drops beats below zero', async () => {
+  const r = await beatBundle([
+    { id: 'a', role: 'original', beats: 'beats/a.json', sources: [] },
+    { id: 'b', role: 'backing', syncFrom: 'a', syncOffsetMs: -600, sources: [] },
+  ], { 'beats/a.json': grid('a', [0, 500, 1000]) });
+  assert.deepEqual(btimes(r.beats('b')), [400]);
+});
+test('a bad or mismatched beat file is a warning, and the recording has no beats', async () => {
+  const r = await beatBundle([
+    { id: 'a', role: 'original', beats: 'beats/a.json', sources: [] },
+    { id: 'b', role: 'original', beats: 'beats/b.json', sources: [] },
+    { id: 'c', role: 'original', beats: 'beats/missing.json', sources: [] },
+  ], { 'beats/a.json': grid('a', [500, 500]), 'beats/b.json': grid('other', [0]) });
+  assert.equal(r.warnings.length, 3);
+  assert.equal(r.beats('a'), null);
+  assert.equal(r.beats('b'), null);
+});

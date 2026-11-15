@@ -12,7 +12,9 @@ addFormats(ajv);
 const load = (f) => JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, f), 'utf8'));
 const manifestValidator = ajv.compile(load('manifest.schema.json'));
 const syncValidator = ajv.compile(load('sync.schema.json'));
+const beatsValidator = ajv.compile(load('beats.schema.json'));
 const fmt = (v) => (v.errors || []).map((e) => `${e.instancePath || '<root>'}: ${e.message}`);
 
 export const manifestSchemaErrorsAjv = (m) => { manifestValidator(m); return fmt(manifestValidator); };
 export const syncSchemaErrorsAjv = (s) => { syncValidator(s); return fmt(syncValidator); };
+export const beatsSchemaErrorsAjv = (b) => { beatsValidator(b); return fmt(beatsValidator); };

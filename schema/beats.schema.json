@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mpak:schema:beats:1",
+  "title": "Music Pack beat file, version 1",
+  "description": "A beat file under beats/ in a .mpak archive. Beats and sections of one recording, on its timeline (SPEC 7, Beat file). It names no score. beats and sections must be sorted by timeMs, strictly increasing (a rule the schema cannot express).",
+  "type": "object",
+  "required": ["version", "recording", "beats"],
+  "properties": {
+    "version": { "const": 1 },
+    "recording": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
+    "beats": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["timeMs"],
+        "properties": {
+          "timeMs": { "type": "number", "minimum": 0 },
+          "downbeat": { "type": "boolean" }
+        }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "timeMs"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "type": { "type": "string", "minLength": 1 },
+          "timeMs": { "type": "number", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "format": "mpak",
+  "version": 1,
+  "song": {
+    "title": "Example Song",
+    "artist": "Example Artist",
+    "genre": "Rock",
+    "publisher": "Example Publisher"
+  },
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/example.pdf",
+      "format": "pdf",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pages": 3
+    }
+  ],
+  "recordings": [
+    {
+      "id": "mix",
+      "role": "original",
+      "label": "Full mix",
+      "beats": "beats/mix.json",
+      "stemsComplete": true,
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/mix.flac",
+          "mime": "audio/flac"
+        }
+      ],
+      "sync": {
+        "main": "sync/mix.json"
+      }
+    },
+    {
+      "id": "drums",
+      "role": "stem",
+      "stemOf": "mix",
+      "label": "Drums",
+      "stem": {
+        "instrument": "drums"
+      },
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/drums.flac",
+          "mime": "audio/flac"
+        }
+      ]
+    },
+    {
+      "id": "nodrums",
+      "role": "backing",
+      "label": "Backing track (no drums)",
+      "syncFrom": "mix",
+      "syncOffsetMs": 2000,
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/nodrums.flac",
+          "mime": "audio/flac"
+        }
+      ]
+    },
+    {
+      "id": "bass",
+      "role": "stem",
+      "stemOf": "mix",
+      "label": "Bass",
+      "stem": {
+        "instrument": "bass"
+      },
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/bass.flac",
+          "mime": "audio/flac"
+        }
+      ]
+    },
+    {
+      "id": "nobass",
+      "role": "backing",
+      "label": "Backing track (no bass)",
+      "syncFrom": "mix",
+      "without": [
+        "bass"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/nobass.flac",
+          "mime": "audio/flac"
+        }
+      ]
+    },
+    {
+      "id": "click",
+      "role": "click",
+      "label": "Click",
+      "beats": "beats/click.json",
+      "sources": [
+        {
+          "type": "file",
+          "path": "audio/click.flac",
+          "mime": "audio/flac"
+        }
+      ]
+    }
+  ]
+}

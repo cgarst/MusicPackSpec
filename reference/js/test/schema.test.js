@@ -5,17 +5,18 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { manifestSchemaErrors, syncSchemaErrors, validateManifest, validateSync } from '../src/core/index.js';
-import { manifestSchemaErrorsAjv, syncSchemaErrorsAjv } from '../src/node/schema.js';
+import { manifestSchemaErrors, syncSchemaErrors, beatsSchemaErrors, validateManifest, validateSync, validateBeats } from '../src/core/index.js';
+import { manifestSchemaErrorsAjv, syncSchemaErrorsAjv, beatsSchemaErrorsAjv } from '../src/node/schema.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const load = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
 const agree = (name, mine, ajv) => assert.equal(mine.length > 0, ajv.length > 0, `${name}: core says ${JSON.stringify(mine)}, schema says ${JSON.stringify(ajv)}`);
 
-const manifests = [], syncs = [];
+const manifests = [], syncs = [], beatFiles = [];
 for (const d of fs.readdirSync(path.join(ROOT, 'examples'), { withFileTypes: true }).filter((x) => x.isDirectory())) {
   const m = load(path.join(ROOT, 'examples', d.name, 'manifest.json'));
   manifests.push([`examples/${d.name}`, m]);
+  for (const r of m.recordings || []) if (r.beats) beatFiles.push([`examples/${d.name}/${r.beats}`, load(path.join(ROOT, 'examples', d.name, r.beats))]);
   for (const r of m.recordings || []) for (const [sid, sp] of Object.entries(r.sync || {})) syncs.push([`examples/${d.name}/${sp}`, load(path.join(ROOT, 'examples', d.name, sp)), m.scores.find((t) => t.id === sid).format]);
 }
 const invalid = fs.readdirSync(path.join(ROOT, 'conformance/invalid')).filter((f) => f.endsWith('.json'));
@@ -23,11 +24,13 @@ const invalid = fs.readdirSync(path.join(ROOT, 'conformance/invalid')).filter((f
 test('every example is valid, by the hand-written validator and by the schemas', () => {
   for (const [n, m] of manifests) { assert.deepEqual(validateManifest(m), [], n); assert.deepEqual(manifestSchemaErrorsAjv(m), [], n); }
   for (const [n, s, f] of syncs) { assert.deepEqual(validateSync(s, f), [], n); assert.deepEqual(syncSchemaErrorsAjv(s), [], n); }
+  for (const [n, b] of beatFiles) { assert.deepEqual(validateBeats(b), [], n); assert.deepEqual(beatsSchemaErrorsAjv(b), [], n); }
 });
 test('every invalid case is refused by both', () => {
   for (const f of invalid) {
     const doc = load(path.join(ROOT, 'conformance/invalid', f));
-    if (f.startsWith('sync-')) { assert.ok(validateSync(doc, f === 'sync-anchor-mismatch.json' ? 'gp5' : undefined).length, f); assert.ok(syncSchemaErrorsAjv(doc).length || f === 'sync-anchor-mismatch.json', f); }
+    if (f.startsWith('beats-')) { assert.ok(validateBeats(doc).length, f); if (f !== 'beats-time-not-increasing.json') assert.ok(beatsSchemaErrorsAjv(doc).length, f); }
+    else if (f.startsWith('sync-')) { assert.ok(validateSync(doc, f === 'sync-anchor-mismatch.json' ? 'gp5' : undefined).length, f); assert.ok(syncSchemaErrorsAjv(doc).length || f === 'sync-anchor-mismatch.json', f); }
     else { assert.ok(validateManifest(doc).length, f); }
   }
 });
@@ -57,6 +60,21 @@ test('hand-written validator and schemas agree on mutations of the examples', ()
       const c = mutate(s, (x) => { let o = x; for (const k of p.slice(0, -1)) o = o[k]; if (v === undefined && Array.isArray(o)) skip = true; else if (v === undefined) delete o[p.at(-1)]; else o[p.at(-1)] = v; });
       if (skip) continue;
       agree(`${n} ${p.join('.')}=${JSON.stringify(v)}`, syncSchemaErrors(c), syncSchemaErrorsAjv(c));
+    }
+  }
+});
+
+test('hand-written validator and schema agree on mutations of the beat files', () => {
+  const bad = [undefined, null, -1, 1.5, '', 'x', [], {}, true, 2];
+  for (const [n, b] of beatFiles) {
+    const paths = [];
+    const walk = (o, p) => { if (o && typeof o === 'object') for (const k of Object.keys(o)) { paths.push([...p, k]); walk(o[k], [...p, k]); } };
+    walk(b, []);
+    for (const p of paths) for (const v of bad) {
+      let skip = false;
+      const c = mutate(b, (x) => { let o = x; for (const k of p.slice(0, -1)) o = o[k]; if (v === undefined && Array.isArray(o)) skip = true; else if (v === undefined) delete o[p.at(-1)]; else o[p.at(-1)] = v; });
+      if (skip) continue;
+      agree(`${n} ${p.join('.')}=${JSON.stringify(v)}`, beatsSchemaErrors(c), beatsSchemaErrorsAjv(c));
     }
   }
 });

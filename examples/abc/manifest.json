@@ -1,16 +1,21 @@
 {
   "format": "mpak",
   "version": 1,
-  "score": {
-    "path": "score/example.abc",
-    "format": "abc",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-  },
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/example.abc",
+      "format": "abc",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
   "recordings": [
     {
       "id": "r1",
       "role": "original",
-      "sync": "sync/r1.json",
+      "sync": {
+        "main": "sync/r1.json"
+      },
       "sources": [
         {
           "type": "youtube",

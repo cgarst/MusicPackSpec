@@ -30,6 +30,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY have the meanings defi
 Goals:
 
 - One file carries everything needed to work with a song: score, recordings, sync, and instrument tunings.
+- A file can hold several scores of one song, such as a Guitar Pro file and a PDF, and each is synced to the recordings.
 - A score reader can adopt all of the format or only the part it needs (section 2).
 - A file written by a simple script (a title and a score) is as valid as a file written by a full application.
 - Another tool can improve a file later, for example by adding audio files, without breaking the file.
@@ -38,7 +39,6 @@ Non-goals:
 
 - It does not define a new notation format. The score inside is an existing file, stored untouched.
 - It does not define playback engines, user interfaces, or library matching.
-- It does not put several scores in one file. A song with several scores is several files (section 6.1).
 - It does not require any network service. A reader MUST be able to open a file without network access.
 
 ## 2. Profiles
@@ -61,8 +61,8 @@ layout:
 
 ```
 manifest.json     the manifest (section 4)
-score/<name>      the score file, byte for byte as supplied (omitted when score.externalPath is used; section 6),
-                  and the files of any alternate scores (section 6.3)
+score/<name>      the score files, byte for byte as supplied (a score that uses externalPath has none; section 6),
+                  including the files of alternate scores (section 6.3)
 audio/<name>      optional audio files
 sync/<name>.json  optional sync files (section 9)
 x-<name>/...      optional extension files of one application (section 13.1)
@@ -113,8 +113,7 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 | `createdAt` | string, date-time | no | When the file was created. |
 | `generator` | `{ name, version? }` | no | The software that wrote the file. |
 | `song` | object | no | Section 5. It can be empty or absent. |
-| `score` | object | yes | Section 6. |
-| `alternates` | array | no | Alternate scores derived from `score`, which share its sync points. Section 6.3. |
+| `scores` | array | yes | One or more scores of the song. The first is the primary score. Section 6. |
 | `recordings` | array | no | Section 7. |
 
 Other fields are allowed. A reader MUST ignore a field it does not know. A field that is private to an application SHOULD start with
@@ -164,10 +163,15 @@ exists:
 
 ## 6. Score
 
-`score` describes the main score in the file.
+`scores` is an array of one or more items. Each item describes one score of the song. The first item is the **primary
+score**: a reader shows it first and uses it where the specification says "the primary score". The order of the other
+items is a display order only. Several scores can be in different formats, for example a Guitar Pro file and a PDF, or
+two arrangements (section 6.2).
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `id` | string | yes | Identifier, unique among all the scores and alternates of the file (same character rules as recording ids). Sync refers to a score by it (section 9). |
+| `label` | string | no | Name for display, such as `"Guitar Pro"` or `"Piano arrangement"`. |
 | `path` | string | unless `externalPath` | Archive path of the score file, under `score/`. |
 | `externalPath` | string | unless `path` | Relative path to a shared PDF file outside the archive (`pdf` only). |
 | `format` | enum | yes | `gp3`, `gp4`, `gp5`, `gp` (Guitar Pro 7 and later), `gpx`, `musicxml` (uncompressed MusicXML), `mxl` (compressed MusicXML), `mscz` (MuseScore), `midi` (Standard MIDI File), `abc` (ABC notation), `pdf`, `txt`. |
@@ -177,9 +181,10 @@ exists:
 | `startPage` | integer | no | 1-based first page of this song inside a multi-song PDF (`pdf` only). |
 | `endPage` | integer | no | 1-based last page of this song inside a multi-song PDF (`pdf` only, `>= startPage`, `<= pages`). |
 | `instruments` | object array | no | Instruments the score is for, with their tunings. See below. Informational. |
+| `alternates` | array | no | Alternate scores that use this score's sync points. Section 6.3. |
 
-- The score is required. A file with only recordings and sync is not valid, because sync points need a score to anchor to.
-- `score` MUST have either `path` or `externalPath`, and MUST NOT have both. `externalPath` is allowed only when `format`
+- At least one score is required. A file with only recordings and sync is not valid, because sync points need a score to anchor to.
+- A score MUST have either `path` or `externalPath`, and MUST NOT have both. `externalPath` is allowed only when `format`
   is `pdf`.
 - Bar and track indices count what the stored score file lists, and the file is stored untouched and pinned by `sha256`,
   so a later version of the score's format cannot change what an index means. A reader reads the file with the rules of
@@ -187,8 +192,8 @@ exists:
 - A writer MUST store an embedded score file (`path`) exactly as supplied and MUST NOT convert or re-encode it. The one
   exception is a `txt` or `abc` score, which MUST be UTF-8. If such a score uses another encoding, the writer converts it
   to UTF-8 and records the hash of the converted file.
-- `sha256` identifies the score file that the sync anchors and stem track links were written against (for an external PDF,
-  the whole PDF file). If a reader finds a different hash, it SHOULD tell the user that sync points may be wrong, and it
+- `sha256` identifies the score file that the score's sync anchors (and, for the primary score, the stem track links) were
+  written against (for an external PDF, the whole PDF file). If a reader finds a different hash, it SHOULD tell the user that sync points may be wrong, and it
   MUST NOT silently apply track links (section 8).
 - `instruments` is for scores that do not carry their own instrument and tuning information, mainly `pdf`, `txt`, and
   `abc`. For a format that carries it, the file wins. For those formats, a writer SHOULD omit `instruments` or make it
@@ -223,80 +228,75 @@ duplicating it in every archive. Rules for `externalPath`:
 - `externalPath` follows the same safe relative path rules as archive entry names (section 3): UTF-8, `/` separated, no
   leading `/`, no backslash, no `.`, `..`, or empty segment, and no control characters.
 - When a reader opens a `.mpak` file from a directory on disk, it resolves `externalPath` inside that directory (and it MUST
-  reject any path that escapes that directory; section 12). A reader with its own library MAY also locate the PDF by `score.sha256`, or
+  reject any path that escapes that directory; section 12). A reader with its own library MAY also locate the PDF by the score's `sha256`, or
   ask the user for the file when it is missing.
-- `score.sha256` is still required when `externalPath` is used, and is the SHA-256 of the whole PDF file.
+- `sha256` is still required when `externalPath` is used, and is the SHA-256 of the whole PDF file.
 
-### 6.2 One score per file, and variations
+### 6.2 Several scores
 
-A file holds exactly one main score. A song with several independent scores, for example a Guitar Pro file and a PDF of
-the same song, or two arrangements, is several `.mpak` files. Each of these files is a **variation** of the song. This
-specification does not define a container for a set of variations.
+A file can hold several scores of one song, for example a Guitar Pro file and a PDF of the same song, or two arrangements.
+They need not share a format or a structure. The first is the primary score.
 
-A simplified or re-instrumented version of the main score that keeps its structure is an alternate, not a variation
-(section 6.3).
-
-A reader MAY import a file as another variation of a song that it already has. How it finds that song (by `song.ids`, by
-`title` and `artist`, or by asking the user) is outside this specification (section 10). When it does:
-
-1. The file's score, recordings, and sync stay together as one variation. Sync points belong to the score that
-   `score.sha256` identifies, and to that score's alternates (section 6.3). A reader MUST NOT apply them to another
-   variation, even of the same song, because the anchors are written against different score bytes and can have
-   different anchor types.
-2. The reader MUST NOT overwrite or remove the sync points, recordings or score of a variation it already has, unless the
-   user asks it to. A file whose `score.sha256` matches an existing variation is the same variation: the reader SHOULD NOT
-   add a duplicate, and MAY offer to add the file's recordings and sync points to it.
-3. Variations MAY share a recording. Two recordings with the same `youtube` `videoId`, or the same audio `sha256`, are the
-   same recording, and a reader MAY store it once. Sync is still kept per variation.
-4. A file holds one variation, so an export holds the data of one main score and its alternates. It does not hold the
-   recordings, sync points, or scores of the song's other variations. A tool that exports several variations writes one
-   file for each, and SHOULD put the same `song` metadata in each so that a reader can match them.
+- **Sync is kept per score and recording.** Sync points are written against the bytes of one score, and different
+  scores can have different anchor types. A recording therefore has one sync file for each score that it is synced
+  to (section 9). A reader MUST NOT apply one score's sync points to another score, except to the alternates of that score
+  (section 6.3). A score with no sync data for a recording is shown without a moving position.
+- **Scores that keep the same structure.** When a second score is a simplified, transposed or re-engraved copy that lines up
+  with a score already in the file, it SHOULD be an alternate of that score (section 6.3). It then needs no sync file of its
+  own.
+- **The primary score** is the one a reader shows first. Stem track links (section 8) refer to its tracks, and an
+  `embedded` source (section 7) is in it unless the source names another score. Moving another score to the front changes
+  both of those, but it changes no sync file, because sync is keyed by score `id`.
+- **Instruments and metadata** are per score.
+- A reader MAY merge a file into a song that it already has. How it finds the song (by `song.ids`, by `title` and
+  `artist`, or by asking the user) is outside this specification (section 10). It MUST NOT overwrite or remove the
+  scores, recordings or sync points it already has unless the user asks it to. A score whose `sha256` matches one it
+  already has is the same score, and a reader SHOULD NOT add a duplicate. Two recordings with the same `youtube`
+  `videoId`, or the same audio `sha256`, are the same recording, and a reader MAY store it once.
+- A reader that shows only one score shows the primary score.
 
 ### 6.3 Alternate scores
 
-An **alternate** is a score that is derived from the main score and keeps its structure, so that the main score's
-sync points are valid for it unchanged. Examples: an easy or simplified arrangement, a version transposed or with
+An **alternate** is a score that is derived from another score of the file and keeps its structure, so that the
+sync points of that score (its **parent**) are valid for the alternate unchanged. Examples: an easy or simplified arrangement, a version transposed or with
 different fingering, a bass-only or vocals-only reduction, a MusicXML export of a Guitar Pro score, a re-engraved
-copy. Alternates are listed in the manifest's `alternates` array. Each item has all the fields of `score` (section 6),
-plus:
+copy. Alternates are listed in the `alternates` array of their parent. Each item has all the fields of a score (section 6) except
+`alternates`, so an alternate cannot have alternates of its own. Its `id` and `label` follow the same rules as for a score.
 
-| Field | Type | Required | Meaning |
-|---|---|---|---|
-| `id` | string | yes | Identifier, unique among the alternates (same character rules as recording ids). |
-| `label` | string | no | Name for display, such as `"Easy"` or `"Bass reduction"`. |
 
 ```json
-"score": { "path": "score/song.gp", "format": "gp", "sha256": "..." },
-"alternates": [
-  { "id": "easy", "label": "Easy", "path": "score/song-easy.gp", "format": "gp", "sha256": "..." },
-  { "id": "xml",  "label": "MusicXML export", "path": "score/song.musicxml", "format": "musicxml", "sha256": "..." }
+"scores": [
+  { "id": "main", "path": "score/song.gp", "format": "gp", "sha256": "...",
+    "alternates": [
+      { "id": "easy", "label": "Easy", "path": "score/song-easy.gp", "format": "gp", "sha256": "..." },
+      { "id": "xml",  "label": "MusicXML export", "path": "score/song.musicxml", "format": "musicxml", "sha256": "..." }
+    ] },
+  { "id": "pdf", "path": "score/song.pdf", "format": "pdf", "sha256": "..." }
 ]
 ```
 
-- **Same sync data.** The file has one set of sync points per recording, written against the main `score` (section 9). A
-  reader applies those points to an alternate unchanged. The alternate MUST therefore have the same anchor type as the
-  main score, and MUST line up with it:
+- **Same sync data.** The file has one set of sync points per recording and parent score, written against the parent
+  (section 9). A reader applies those points to the parent's alternates unchanged. An alternate MUST therefore have the
+  same anchor type as its parent, and MUST line up with it:
   - For `bar` anchors, bar `n` (with its `occurrence` and `pos`) is the same music in both scores and has the same
     repeat and jump structure.
   - For `tick` anchors, the scores have the same tick resolution and tempo map.
   - For `text` anchors, the scores have the same lines.
 
   A writer MUST NOT list a score as an alternate when its structure differs, for example when it has a different bar
-  count, a re-ordered form, or a different layout. That score is a variation (section 6.2), in its own file with its
-  own sync. A `pdf` alternate is valid only when its pages and coordinates match the main PDF's, so it is rarely
-  derivable this way.
-- **The main score stays the reference.** `score` is the default and is the score that sync, `sha256` checks, and stem
-  track links are written against. A reader shows the main score unless the user picks an alternate. Order in
-  `alternates` is a display order only.
-- **Files.** Each alternate has `path` or `externalPath` under the same rules as the main score (section 6, 6.1), and its
+  count, a re-ordered form, or a different layout. That score is a separate score (section 6.2), with its own sync. A
+  `pdf` alternate is valid only when its pages and coordinates match its parent PDF, so it is rarely derivable this way.
+- **The parent stays the reference.** The parent is the score that sync is written against. A reader shows the parent
+  unless the user picks one of its alternates. Order in `alternates` is a display order only.
+- **Files.** Each alternate has `path` or `externalPath` under the same rules as a score (section 6, 6.1), and its
   own `sha256`. A writer stores an embedded alternate byte for byte. An alternate's `sha256` is checked on its own. On a
-  mismatch, a reader SHOULD warn and MAY refuse to show that alternate. A mismatch does not affect the main score.
-- **Track links.** `stem.track` counts the main score's tracks (section 8). A reader MUST NOT apply a `stem.track` index to
-  an alternate. It MAY find the track by `stem.trackName` when exactly one track in the alternate has that name.
+  mismatch, a reader SHOULD warn and MAY refuse to show that alternate. A mismatch does not affect the parent.
+- **Track links.** `stem.track` counts the primary score's tracks (section 8). A reader MUST NOT apply a `stem.track` index to
+  an alternate, or to any score other than the primary. It MAY find the track by `stem.trackName` when exactly one track in the alternate has that name.
   Otherwise it mutes nothing.
 - **Instruments and metadata** are per alternate. An alternate MAY have different `instruments` (for example drop D), even
   though its bar structure matches.
-- A reader that does not know `alternates` ignores it (section 10) and shows only the main score.
+- A reader that does not know `alternates` ignores it (section 10) and shows only the scores in `scores`.
 
 ## 7. Recordings
 
@@ -308,8 +308,8 @@ plus:
 | `role` | string | yes | What the recording is (below). |
 | `label` | string | no | Display name. |
 | `sources` | array | yes | Ordered forms of this recording. May be empty. |
-| `sync` | string | no | Archive path of this recording's sync file. |
-| `syncFrom` | string | no | Id of a recording whose sync points this one shares. |
+| `sync` | object | no | Archive paths of this recording's sync files, one for each score: a map from a score `id` to a path. Section 9. |
+| `syncFrom` | string | no | Id of a recording whose sync points this one shares, for each score that has no `sync` entry here. |
 | `syncOffsetMs` | integer | no | Milliseconds added to the points shared through `syncFrom`. May be negative. Section 9. |
 | `stemOf`, `stem`, `stemsComplete` | | no | Section 8. |
 
@@ -343,14 +343,15 @@ Every source has a `type`. A source can also have these optional fields:
 | `file` | `path` (required, under `audio/`), `mime` | An audio file in the archive. |
 | `youtube` | `videoId` (required, 11 characters) | A YouTube video, played with the service's own player. |
 | `url` | `url` (required, `http` or `https`), `mime` | Audio at a web address. |
-| `embedded` | none | Audio carried inside the score file itself, for example the audio track of a Guitar Pro 7 or later (`gp`) file. |
+| `embedded` | `score` (optional) | Audio carried inside a score file itself, for example the audio track of a Guitar Pro 7 or later (`gp`) file. |
 | `external` | none | A recording that exists but has no playable source here. `sha256` and `durationMs` help identify it. |
 
-An `embedded` source has no `path`: the bytes are in the score file that `score.path` names, and the reader extracts them
-with its own code for that score format. These rules apply:
+An `embedded` source has no `path`: the bytes are in a score file, and the reader extracts them with its own code for that
+score format. `score` is the `id` of the score that holds them, and defaults to the primary score. It names a score of
+`scores`, not an alternate. These rules apply:
 
-- It is defined for the score format `gp`. For any other score format a reader skips it, and a writer MUST NOT write it.
-- It is valid only for the exact score file that `score.sha256` identifies. If the hash does not match, a reader MUST skip
+- It is defined for the score format `gp`. If the score is any other format, a reader skips it, and a writer MUST NOT write it.
+- It is valid only for the exact score file that the score's `sha256` identifies. If the hash does not match, a reader MUST skip
   the source.
 - `offsetMs` places the embedded audio on the recording's timeline, like any other source. When the recording has sync
   points (section 9), they apply instead of the score's own sync points. When the recording has no sync points in the
@@ -358,7 +359,8 @@ with its own code for that score format. These rules apply:
 - A tool MAY extract the audio into `audio/<name>` and prepend a `file` source to the same recording (or place it before
   the `embedded` source), with `derivedFrom` set to the embedded source's `id` (section 11). The `embedded` source stays,
   so the file still round trips.
-- A recording can have only one `embedded` source, because a score file has one audio track.
+- A recording can have only one `embedded` source, because a score file has one audio track. Another recording can use the
+  audio of another score.
 
 Other types are allowed. A source of any type MAY appear on any recording, including a stem.
 
@@ -388,7 +390,7 @@ together.
 |---|---|
 | `stemOf` | Id of the recording this stem was split from. Only with `role: "stem"`. The stem's audio is time-aligned with that recording (offset 0). Unless the stem has its own `sync`, it uses that recording's sync points. |
 | `stem.instrument` | Open vocabulary. Suggested: `guitar`, `bass`, `drums`, `vocals`, `keys`, `other`. |
-| `stem.track` | 0-based index into the score's track list (formats that list tracks only). |
+| `stem.track` | 0-based index into the primary score's track list (formats that list tracks only). |
 | `stem.trackName` | Optional. The name of that track, used as a check. |
 | `stemsComplete` | On the recording that the stems were split from: `true` when the stems add up to the whole mix. |
 
@@ -397,11 +399,12 @@ together.
 - **One track per stem.** `stem.track` is a single index. A stem that mixes two tracks has no `track`, and a reader
   mutes nothing for it. A writer that wants per-track muting for those tracks splits them into separate stems.
 - **A split of each guitar track.** Use several stems with `instrument: "guitar"`, each with a different `track`.
-- **Track links.** `stem.track` is the index of the track in the order that the score file lists its tracks. If
+- **Track links.** `stem.track` is the index of the track in the order that the primary score file lists its tracks. If
   `stem.trackName` is present and the track at that index has a different name, the reader looks for exactly one track
   with that name and uses it. If it finds none or several, it ignores the link and mutes nothing, because a wrong mute is
-  worse than no mute. A reader MUST also ignore track links when the score's `sha256` does not match the score file, and
-  when the score format is `pdf`, `txt`, or `abc`.
+  worse than no mute. A reader MUST also ignore track links when the primary score's `sha256` does not match its file, and
+  when its format is `pdf`, `txt`, or `abc`. Track links apply to the primary score only. For another score a reader MAY
+  find the track by `stem.trackName` (section 6.3).
 - **Building a backing mix.** If the mix has `stemsComplete: true`, a reader MAY play all its stems except the ones
   linked to the track being played. A separate `backing` recording is then optional.
 - **A stem that is not aligned with its parent.** Do not use `stemOf` for it. Give it `role: "stem"` and `stem`, and set
@@ -412,13 +415,19 @@ together.
 
 ## 9. Sync
 
-A sync file aligns the score to one recording. It is a JSON file under `sync/` (schema: `schema/sync.schema.json`). The
-recording's `sync` field refers to it.
+A sync file aligns one score to one recording. It is a JSON file under `sync/` (schema: `schema/sync.schema.json`). The
+recording's `sync` field refers to it, under the `id` of the score:
+
+```json
+{ "id": "r1", "role": "original", "sources": [ ... ],
+  "sync": { "main": "sync/r1-main.json", "pdf": "sync/r1-pdf.json" } }
+```
 
 ```json
 {
   "version": 1,
   "recording": "r1",
+  "score": "main",
   "anchorType": "bar",
   "updatedAt": "2026-11-14T12:00:00Z",
   "points": [
@@ -428,35 +437,38 @@ recording's `sync` field refers to it.
 }
 ```
 
-- `recording` is the id of the recording that the points belong to.
-- `anchorType` MUST match the score format (section 6). The points are written against the main score, and they also apply
-  to its alternates (section 6.3).
+- `recording` is the id of the recording that the points belong to, and `score` is the id of the score that they are written
+  against. Both MUST equal the ones that the manifest's `sync` entry gives. `score` names a score of `scores`, not an
+  alternate.
+- `anchorType` MUST match the format of that score (section 6). The points also apply to the score's alternates
+  (section 6.3).
 - A point MAY carry `x-` fields. A reader ignores any field of a point that it does not know.
 - `points` MUST be sorted by `timeMs`, strictly increasing. Each point has:
   - `timeMs`: milliseconds on the recording's timeline, 0 or more.
   - `source` (optional): `tap`, `manual`, or `auto`. The default is `manual`.
   - `id` (optional).
   - the anchor fields for the anchor type, described below.
-- A recording with no sync file, no `syncFrom`, and no `stemOf` has no sync data. That is valid, and the score and recording
+- A recording with no sync file for a score, no `syncFrom`, and no `stemOf` has no sync data for that score. That is valid, and the score and recording
   still travel together.
-- **Resolution.** To find the sync points of recording R:
-  1. If R has its own `sync` file, use it. Its points are already on R's timeline.
-  2. Otherwise, if R has `syncFrom`, find the points of that recording and add R's `syncOffsetMs` (default 0) to each
+- **Resolution.** To find the sync points of recording R for score S:
+  1. If R has a `sync` entry for S, use that file. Its points are already on R's timeline.
+  2. Otherwise, if R has `syncFrom`, find the points of that recording for S and add R's `syncOffsetMs` (default 0) to each
      `timeMs`.
-  3. Otherwise, if R has `stemOf`, find the points of that recording. Add no offset.
-  4. Otherwise R has no sync data.
+  3. Otherwise, if R has `stemOf`, find the points of that recording for S. Add no offset.
+  4. Otherwise R has no sync data for S.
 
-  Each step can lead to another recording, and the offsets along the chain add up. A chain that returns to a recording
-  it already visited is invalid. A reader drops any point whose `timeMs` ends up below 0.
+  Each step can lead to another recording, and the offsets along the chain add up. The chain is followed for one score at
+  a time, so R can have its own file for one score and inherit the points for another. A chain that returns to a
+  recording it already visited is invalid. A reader drops any point whose `timeMs` ends up below 0.
 - **`syncOffsetMs`.** Use it when a recording has the same tempo and structure as another but starts earlier or later,
   for example a backing track with a count-in. A positive value means the music starts later than in the recording
-  that it shares points with. `syncOffsetMs` MUST NOT appear without `syncFrom`, or together with `sync`.
+  that it shares points with. `syncOffsetMs` MUST NOT appear without `syncFrom`. It applies only to the scores for which R has no `sync` entry.
 - **What can be shared.** Sharing assumes the same structure and tempo. A recording with a different arrangement or
-  tempo, such as a live version, needs its own `sync` file. A sync file belongs to one recording, because its
-  `recording` field MUST equal that recording's id. Two recordings cannot point `sync` at the same file. Use
+  tempo, such as a live version, needs its own sync files. A sync file belongs to one recording and one score, because its
+  `recording` and `score` fields MUST equal the ones in the manifest. Two entries cannot point at the same file. Use
   `syncFrom` instead.
 - **Exact timing.** A reader that does not know `syncOffsetMs` ignores it and places the cursor too early or too late.
-  If exact timing matters, a writer SHOULD give the recording its own `sync` file.
+  If exact timing matters, a writer SHOULD give the recording its own sync files.
 - Before the first point and after the last, a reader holds the first or last position. It MAY extrapolate instead.
 
 ### 9.1 Anchor type `bar` (Guitar Pro, MusicXML, and MuseScore scores)
@@ -482,7 +494,7 @@ The master bar list of each format is:
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `page` | integer ≥ 1 | yes | 1-based page number in the PDF file (when `score.startPage` and `score.endPage` are set, `page` is between `startPage` and `endPage` inclusive, not renumbered from 1). |
+| `page` | integer ≥ 1 | yes | 1-based page number in the PDF file (when the score's `startPage` and `endPage` are set, `page` is between `startPage` and `endPage` inclusive, not renumbered from 1). |
 | `x` | number, 0 to 1 | with `y` | Horizontal position, as a fraction of the page width. |
 | `y` | number, 0 to 1 | with `x` | Vertical position, as a fraction of the page height. |
 
@@ -500,7 +512,7 @@ The master bar list of each format is:
 - **Between points.** A reader moves from one point to the next as follows. If the next point is a backward jump, or is on
   another page, the reader holds the earlier point until the next one. Otherwise, if both points are position anchors on
   the same page, the reader MAY interpolate. In every other case it holds.
-- A writer SHOULD set `score.pages`. Anchors are valid only for the exact file that `score.sha256` identifies.
+- A writer SHOULD set the score's `pages`. Anchors are valid only for the exact file that the score's `sha256` identifies.
 
 ### 9.3 Anchor type `text`
 
@@ -551,10 +563,10 @@ A reader:
 3. MUST ignore fields, entries, roles, sources and `ids` keys it does not know.
 4. MUST reject `version` greater than it supports, with a message saying the file needs a newer reader.
 5. MUST treat everything inside the archive as untrusted input (section 12).
-6. SHOULD warn when the score's `sha256` (or an alternate's) does not match the file.
+6. SHOULD warn when a score's `sha256` (or an alternate's) does not match the file.
 7. SHOULD NOT fail on a missing optional part. A file with only a score is a valid file.
 
-Library matching, merging a file into a song as another variation (section 6.2), MusicBrainz lookups, and similar
+Library matching, merging a file into a song (section 6.2), MusicBrainz lookups, and similar
 enrichment are application features. They are outside this specification. A reader MAY use `song.ids` for them.
 
 ## 11. Writer requirements and enrichment
@@ -563,8 +575,8 @@ A writer:
 
 1. MUST follow section 3.
 2. MUST write the manifest fields marked required.
-3. MUST write a valid sync file for each recording that it gives sync points to.
-4. MUST store an embedded score file (`score.path`) byte for byte (a `txt` or `abc` score as UTF-8).
+3. MUST write a valid sync file for each recording and score that it gives sync points to.
+4. MUST store an embedded score file (a score's `path`) byte for byte (a `txt` or `abc` score as UTF-8).
 5. SHOULD write `generator`.
 6. SHOULD write audio entries Stored, and MUST use ZIP64 where section 3.1 requires it.
 7. SHOULD write a file in one pass over its audio, without holding the audio in memory.
@@ -588,8 +600,8 @@ users decide whether a tool does that (section 14).
 
 A reader MUST protect against:
 
-- **Path traversal (zip slip).** Reject entries (and `score.externalPath`) that break the name rules in section 3. When you
-  extract an entry to disk, resolve its path inside a directory of your own choosing. When you resolve `score.externalPath`,
+- **Path traversal (zip slip).** Reject entries (and every `externalPath`) that break the name rules in section 3. When you
+  extract an entry to disk, resolve its path inside a directory of your own choosing. When you resolve an `externalPath`,
   resolve it inside the directory that contains the `.mpak` file. Do not use a path from the archive or manifest as it is.
 - **Decompression bombs.** Reject the archive, or stop reading, in any of these cases: an entry inflates to more than 100
   times its stored size, the manifest is over 1 MiB, a sync file is over 8 MiB, or the archive has more than 1000
@@ -616,7 +628,7 @@ A file MAY carry data that this specification does not define. Extensions let an
 file without a new version and without breaking other readers.
 
 - **Extension fields.** Any JSON object in `manifest.json` or in a sync file MAY have extra fields. This covers the
-  manifest itself and `song`, `score`, recordings, sources, `stem`, sync files and sync points. The name of an extension
+  manifest itself and `song`, scores, recordings, sources, `stem`, sync files and sync points. The name of an extension
   field MUST start with `x-` followed by a short name for the application or vendor, for example `x-myapp-color`. This
   specification will not define any field that starts with `x-`. A field without the `x-` prefix that this
   specification does not define is reserved for later versions, and a writer SHOULD NOT use one.
@@ -625,7 +637,7 @@ file without a new version and without breaking other readers.
   readers ignore them. The manifest MAY point to them from an extension field.
 - **Open vocabularies.** Where this specification says a vocabulary is open (`role`, `stem.instrument`, source `type`), an
   application MAY use values of its own. A reader that does not know a value follows the rule given for that field. Use
-  a name that is unlikely to clash, such as `x-myapp-loop`. The closed lists (`score.format` and `anchorType`) are
+  a name that is unlikely to clash, such as `x-myapp-loop`. The closed lists (`format` of a score and `anchorType`) are
   extended only by a later version of this specification.
 - **What an extension MUST NOT do.** It MUST NOT change the meaning of a defined field, and a file MUST remain correct
   for a reader that ignores every extension. A change that readers cannot safely ignore is a new `version`, not an

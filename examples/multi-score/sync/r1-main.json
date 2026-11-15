@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "recording": "r1",
+  "score": "main",
+  "anchorType": "bar",
+  "points": [
+    {
+      "timeMs": 0,
+      "bar": 0
+    },
+    {
+      "timeMs": 2000,
+      "bar": 1
+    },
+    {
+      "timeMs": 4000,
+      "bar": 2
+    }
+  ]
+}

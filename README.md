@@ -1,7 +1,7 @@
 # Music Pack (.mpak)
 
-An open file format that packages one song: the **score**, the **recordings** that go with it (original,
-backing track, stems), and the **sync points** that align the score to each recording.
+An open file format that packages one song: one or more **scores**, the **recordings** that go with it (original,
+backing track, stems), and the **sync points** that align each score to each recording.
 
 The file is a ZIP archive of ordinary files, so any language can read and write it. The score inside is an existing file
 (Guitar Pro, MusicXML, MuseScore, MIDI, ABC, PDF, or plain text), stored untouched.
@@ -24,7 +24,7 @@ The file is a ZIP archive of ordinary files, so any language can read and write 
 
 ```
 song.mpak  (ZIP)
-├── manifest.json    song, score, recordings
+├── manifest.json    song, scores, recordings
 ├── score/song.gp5   the score, byte for byte
 ├── audio/mix.ogg    optional audio
 └── sync/mix.json    optional sync points

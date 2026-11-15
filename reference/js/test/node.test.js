@@ -16,7 +16,7 @@ function stage(name) {
   fs.cpSync(path.join(ROOT, 'examples', name), dir, { recursive: true });
   const m = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
   const put = (p, data) => { fs.mkdirSync(path.dirname(path.join(dir, p)), { recursive: true }); fs.writeFileSync(path.join(dir, p), data); };
-  put(m.score.path || m.score.externalPath, `dummy score for ${name}\n`.repeat(50));
+  for (const t of m.scores) for (const x of [t, ...(t.alternates || [])]) put(x.path || x.externalPath, `dummy score for ${x.id} of ${name}\n`.repeat(50));
   for (const r of m.recordings || []) for (const s of r.sources) if (s.type === 'file') put(s.path, Buffer.alloc(4096, 7));
   return dir;
 }
@@ -27,8 +27,11 @@ for (const name of examples) {
     const r = await openMpak(bytesSource(bytes));
     assert.deepEqual(r.warnings, []);
     assert.equal(r.manifest.format, 'mpak');
-    assert.equal(await sha256(r.score), r.manifest.score.sha256);
-    for (const rec of r.manifest.recordings || []) if (rec.sync || rec.syncFrom || rec.stemOf) assert.ok(r.sync(rec.id), `sync resolves for ${rec.id}`);
+    assert.equal(await sha256(r.score), r.manifest.scores[0].sha256);
+    for (const rec of r.manifest.recordings || []) {
+      if (rec.syncFrom || rec.stemOf) assert.ok(r.sync(rec.id), `sync resolves for ${rec.id}`);
+      for (const sid of Object.keys(rec.sync || {})) assert.ok(r.sync(rec.id, sid), `sync resolves for ${rec.id} and score ${sid}`);
+    }
   });
 }
 
@@ -68,7 +71,7 @@ test('a bundle written to disk opens by range, and the audio hash is checked by 
 
 test('readDir replaces placeholder hashes', async () => {
   const { manifest } = await readDir(stage('minimal'));
-  assert.notEqual(manifest.score.sha256, '0'.repeat(64));
+  assert.notEqual(manifest.scores[0].sha256, '0'.repeat(64));
 });
 
 test('externalPath is hashed on packDir, omitted from archive, and resolved on openMpakFile', async () => {
@@ -79,10 +82,10 @@ test('externalPath is hashed on packDir, omitted from archive, and resolved on o
   fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify({
     format: 'mpak',
     version: 1,
-    score: { externalPath: 'books/book.pdf', format: 'pdf', sha256: '0'.repeat(64), pages: 20, startPage: 4, endPage: 7 },
+    scores: [{ id: 'main', externalPath: 'books/book.pdf', format: 'pdf', sha256: '0'.repeat(64), pages: 20, startPage: 4, endPage: 7 }],
   }));
   const { manifest, files } = await readDir(dir);
-  assert.equal(manifest.score.sha256, await sha256(pdf));
+  assert.equal(manifest.scores[0].sha256, await sha256(pdf));
   assert.equal(files.has('books/book.pdf'), false);
   const out = path.join(dir, 'song.mpak');
   await writeParts(out, (await packDir(dir)).parts);

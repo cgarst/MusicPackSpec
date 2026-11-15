@@ -2,11 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:mpak:schema:sync:1",
   "title": "Music Pack sync file, version 1",
-  "description": "A sync file under sync/ in a .mpak archive. Aligns the score to one recording. anchorType must match the score format in the manifest (bar, tick, pdf or text).",
+  "description": "A sync file under sync/ in a .mpak archive. Aligns one score to one recording. anchorType must match the format of that score in the manifest (bar, tick, pdf or text).",
   "type": "object",
   "required": [
     "version",
     "recording",
+    "score",
     "anchorType",
     "points"
   ],
@@ -15,6 +16,10 @@
       "const": 1
     },
     "recording": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "score": {
       "type": "string",
       "pattern": "^[A-Za-z0-9_-]{1,64}$"
     },

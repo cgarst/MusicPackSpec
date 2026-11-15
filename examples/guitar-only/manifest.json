@@ -1,11 +1,14 @@
 {
   "format": "mpak",
   "version": 1,
-  "score": {
-    "path": "score/lesson.gp5",
-    "format": "gp5",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-  },
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/lesson.gp5",
+      "format": "gp5",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
   "recordings": [
     {
       "id": "gtr",
@@ -14,7 +17,9 @@
       "stem": {
         "instrument": "guitar"
       },
-      "sync": "sync/gtr.json",
+      "sync": {
+        "main": "sync/gtr.json"
+      },
       "sources": [
         {
           "type": "file",

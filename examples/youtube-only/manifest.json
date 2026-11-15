@@ -18,18 +18,23 @@
       }
     }
   },
-  "score": {
-    "path": "score/example.gp5",
-    "format": "gp5",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-    "name": "example.gp5"
-  },
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/example.gp5",
+      "format": "gp5",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "name": "example.gp5"
+    }
+  ],
   "recordings": [
     {
       "id": "r1",
       "role": "original",
       "label": "Studio version",
-      "sync": "sync/r1.json",
+      "sync": {
+        "main": "sync/r1.json"
+      },
       "sources": [
         {
           "type": "youtube",

@@ -4,7 +4,7 @@
   "title": "Music Pack manifest, version 1",
   "description": "manifest.json inside a .mpak archive. Unknown fields are allowed and ignored by readers.",
   "type": "object",
-  "required": ["format", "version", "score"],
+  "required": ["format", "version", "scores"],
   "properties": {
     "format": { "const": "mpak" },
     "version": { "const": 1 },
@@ -18,18 +18,26 @@
       }
     },
     "song": { "$ref": "#/$defs/song" },
-    "score": { "$ref": "#/$defs/score" },
-    "alternates": {
+    "scores": {
       "type": "array",
-      "description": "Alternate scores derived from score; they share its sync points (SPEC 6.3).",
+      "minItems": 1,
+      "description": "The scores of the song. The first is the primary score (SPEC 6).",
       "items": {
         "allOf": [
           { "$ref": "#/$defs/score" },
           {
             "required": ["id"],
             "properties": {
-              "id": { "$ref": "#/$defs/id" },
-              "label": { "type": "string" }
+              "alternates": {
+                "type": "array",
+                "description": "Scores derived from this one that share its sync points (SPEC 6.3).",
+                "items": {
+                  "allOf": [
+                    { "$ref": "#/$defs/score" },
+                    { "required": ["id"] }
+                  ]
+                }
+              }
             }
           }
         ]
@@ -84,6 +92,8 @@
       "type": "object",
       "required": ["format", "sha256"],
       "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string" },
         "path": { "$ref": "#/$defs/archivePath" },
         "externalPath": { "$ref": "#/$defs/archivePath" },
         "format": { "enum": ["gp3", "gp4", "gp5", "gp", "gpx", "musicxml", "mxl", "mscz", "midi", "abc", "pdf", "txt"] },
@@ -136,7 +146,12 @@
         "role": { "type": "string", "minLength": 1, "description": "Open vocabulary. Defined: original, backing, stem." },
         "label": { "type": "string" },
         "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } },
-        "sync": { "$ref": "#/$defs/archivePath" },
+        "sync": {
+          "type": "object",
+          "description": "Sync file paths, keyed by score id (SPEC 9).",
+          "propertyNames": { "$ref": "#/$defs/id" },
+          "additionalProperties": { "$ref": "#/$defs/archivePath" }
+        },
         "syncFrom": { "$ref": "#/$defs/id" },
         "syncOffsetMs": { "type": "integer", "description": "Added to the points inherited through syncFrom. May be negative." },
         "stemOf": { "$ref": "#/$defs/id" },
@@ -152,8 +167,7 @@
       },
       "allOf": [
         { "if": { "required": ["stemOf"] }, "then": { "properties": { "role": { "const": "stem" } } } },
-        { "dependentRequired": { "syncOffsetMs": ["syncFrom"] } },
-        { "if": { "required": ["sync"] }, "then": { "not": { "required": ["syncOffsetMs"] } } }
+        { "dependentRequired": { "syncOffsetMs": ["syncFrom"] } }
       ]
     },
     "source": {
@@ -168,6 +182,12 @@
         "derivedFrom": { "$ref": "#/$defs/id" }
       },
       "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "embedded" } }, "required": ["type"] },
+          "then": {
+            "properties": { "score": { "$ref": "#/$defs/id" } }
+          }
+        },
         {
           "if": { "properties": { "type": { "const": "file" } }, "required": ["type"] },
           "then": {

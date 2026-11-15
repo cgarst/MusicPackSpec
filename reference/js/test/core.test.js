@@ -80,7 +80,7 @@ test('rejects bytes that are not a zip', async () => {
 });
 test('hash mismatch is a warning, not an error', async () => {
   const b = await base();
-  const m = { ...await goodManifest(), score: { ...(await goodManifest()).score, sha256: '0'.repeat(64) } };
+  const m = { ...await goodManifest(), scores: [{ ...(await goodManifest()).scores[0], sha256: '0'.repeat(64) }] };
   const o = await open(await build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, b[1]]));
   assert.match(o.warnings[0], /sha256 mismatch/);
 });
@@ -154,8 +154,8 @@ test('sha256 matches Node for a known value', async () => assert.equal(await sha
 
 // --- instruments, multi-song pdf, externalPath ----------------------------------------------------------------------
 test('instruments accept several tunings, pitch names with or without octaves, and a capo', () => {
-  const baseM = { format: 'mpak', version: 1, score: { path: 'score/a.txt', format: 'txt', sha256: '0'.repeat(64) } };
-  const withIns = (instruments) => validateManifest({ ...baseM, score: { ...baseM.score, instruments } });
+  const baseM = { format: 'mpak', version: 1, scores: [{ id: 'main', path: 'score/a.txt', format: 'txt', sha256: '0'.repeat(64) }] };
+  const withIns = (instruments) => validateManifest({ ...baseM, scores: [{ ...baseM.scores[0], instruments }] });
   assert.deepEqual(withIns([{ name: 'Guitar', tuning: ['D', 'A', 'D', 'G', 'B', 'E'], capo: 2 }, { name: 'Bass', tuning: ['E1', 'A1', 'D2', 'G2'] }]), []);
   assert.deepEqual(withIns([{}]), []);
   assert.ok(withIns([{ tuning: ['H', 'A'] }]).length);
@@ -165,17 +165,17 @@ test('instruments accept several tunings, pitch names with or without octaves, a
 });
 
 test('multi-song PDF startPage/endPage bounds are validated', () => {
-  const pdfScore = { path: 'score/book.pdf', format: 'pdf', sha256: '0'.repeat(64), pages: 10 };
-  assert.deepEqual(validateManifest({ format: 'mpak', version: 1, score: { ...pdfScore, startPage: 3, endPage: 7 } }), []);
-  assert.deepEqual(validateManifest({ format: 'mpak', version: 1, score: { ...pdfScore, startPage: 5, endPage: 5 } }), []);
-  assert.ok(validateManifest({ format: 'mpak', version: 1, score: { ...pdfScore, startPage: 6, endPage: 5 } }).length);
-  assert.ok(validateManifest({ format: 'mpak', version: 1, score: { ...pdfScore, startPage: 11 } }).length);
-  assert.ok(validateManifest({ format: 'mpak', version: 1, score: { ...pdfScore, endPage: 11 } }).length);
+  const pdfScore = { id: 'main', path: 'score/book.pdf', format: 'pdf', sha256: '0'.repeat(64), pages: 10 };
+  assert.deepEqual(validateManifest({ format: 'mpak', version: 1, scores: [{ ...pdfScore, startPage: 3, endPage: 7 }] }), []);
+  assert.deepEqual(validateManifest({ format: 'mpak', version: 1, scores: [{ ...pdfScore, startPage: 5, endPage: 5 }] }), []);
+  assert.ok(validateManifest({ format: 'mpak', version: 1, scores: [{ ...pdfScore, startPage: 6, endPage: 5 }] }).length);
+  assert.ok(validateManifest({ format: 'mpak', version: 1, scores: [{ ...pdfScore, startPage: 11 }] }).length);
+  assert.ok(validateManifest({ format: 'mpak', version: 1, scores: [{ ...pdfScore, endPage: 11 }] }).length);
 });
 
 test('externalPath opens without embedding the PDF and checks sha256 when provided', async () => {
   const pdfBytes = u8('%PDF-1.4 shared book');
-  const m = { format: 'mpak', version: 1, score: { externalPath: 'books/jazz.pdf', format: 'pdf', sha256: await sha256(pdfBytes), startPage: 2, endPage: 4 } };
+  const m = { format: 'mpak', version: 1, scores: [{ id: 'main', externalPath: 'books/jazz.pdf', format: 'pdf', sha256: await sha256(pdfBytes), startPage: 2, endPage: 4 }] };
   const parts = await buildMpak(m, {});
   const archive = await concatParts(parts.parts);
   const withoutExternal = await openMpak(bytesSource(archive));
@@ -186,4 +186,24 @@ test('externalPath opens without embedding the PDF and checks sha256 when provid
   assert.deepEqual(withExternal.warnings, []);
   const mismatch = await openMpak(bytesSource(archive), { externalScore: u8('%PDF-1.4 wrong') });
   assert.match(mismatch.warnings[0], /sha256 mismatch/);
+});
+
+test('an alternate score file is loaded and its sha256 is checked', async () => {
+  const mk = async (altHash) => {
+    const m = await goodManifest();
+    m.scores[0].alternates = [{ id: 'easy', path: 'score/easy.txt', format: 'txt', sha256: altHash }];
+    return build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, (await base())[1], { name: 'score/easy.txt', data: u8('easy') }]);
+  };
+  const ok = await open(await mk(await sha256(u8('easy'))));
+  assert.deepEqual(ok.warnings, []);
+  assert.deepEqual(ok.scoreBytes('easy'), u8('easy'));
+  const bad = await open(await mk('0'.repeat(64)));
+  assert.match(bad.warnings[0], /sha256 mismatch: score\/easy\.txt/);
+});
+test('the score field is only defined on an embedded source', () => {
+  const m = (src) => ({ format: 'mpak', version: 1, scores: [{ id: 'main', path: 'score/a.gp', format: 'gp', sha256: '0'.repeat(64) }], recordings: [{ id: 'r', role: 'original', sources: [src] }] });
+  assert.deepEqual(validateManifest(m({ type: 'embedded', score: 'main' })), []);
+  assert.ok(validateManifest(m({ type: 'embedded', score: 'nope' })).length);
+  assert.ok(validateManifest(m({ type: 'embedded', score: 5 })).length);
+  assert.deepEqual(validateManifest(m({ type: 'x-other', score: 5 })), []);
 });

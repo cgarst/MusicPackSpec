@@ -1,10 +1,13 @@
 {
   "format": "mpak",
   "version": 1,
-  "score": {
-    "path": "score/song.txt",
-    "format": "txt",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-    "startPage": 1
-  }
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/song.txt",
+      "format": "txt",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "startPage": 1
+    }
+  ]
 }

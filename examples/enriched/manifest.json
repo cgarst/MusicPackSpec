@@ -5,16 +5,21 @@
     "title": "Example Song",
     "artist": "Example Artist"
   },
-  "score": {
-    "path": "score/example.gp5",
-    "format": "gp5",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-  },
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/example.gp5",
+      "format": "gp5",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
   "recordings": [
     {
       "id": "r1",
       "role": "original",
-      "sync": "sync/r1.json",
+      "sync": {
+        "main": "sync/r1.json"
+      },
       "sources": [
         {
           "type": "file",
@@ -34,5 +39,11 @@
       ]
     }
   ],
-  "x-example-app": { "lastOpened": "2026-01-01", "loop": { "fromBar": 4, "toBar": 8 } }
+  "x-example-app": {
+    "lastOpened": "2026-01-01",
+    "loop": {
+      "fromBar": 4,
+      "toBar": 8
+    }
+  }
 }

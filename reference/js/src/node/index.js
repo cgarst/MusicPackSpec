@@ -77,12 +77,14 @@ export async function readDir(dir, { fixHashes = true } = {}) {
   } };
   walk(dir);
   if (fixHashes) {
-    const tp = manifest.score.path || manifest.score.externalPath;
-    if (tp && files.has(tp)) manifest.score.sha256 = await sha256(files.get(tp));
+    for (const t of manifest.scores || []) for (const x of [t, ...(t.alternates || [])]) {
+      const tp = x.path || x.externalPath;
+      if (tp && files.has(tp)) x.sha256 = await sha256(files.get(tp));
+    }
     for (const r of manifest.recordings || []) for (const s of r.sources || [])
       if (s.type === 'file' && files.has(s.path)) s.sha256 = await sha256(files.get(s.path));
   }
-  if (manifest.score.externalPath) files.delete(manifest.score.externalPath);
+  for (const t of manifest.scores || []) for (const x of [t, ...(t.alternates || [])]) if (x.externalPath) files.delete(x.externalPath);
   return { manifest, files };
 }
 

@@ -5,16 +5,21 @@
     "title": "Example Song",
     "artist": "Example Artist"
   },
-  "score": {
-    "path": "score/example.gp",
-    "format": "gp",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-  },
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/example.gp",
+      "format": "gp",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
   "recordings": [
     {
       "id": "r1",
       "role": "original",
-      "sync": "sync/r1.json",
+      "sync": {
+        "main": "sync/r1.json"
+      },
       "sources": [
         {
           "type": "embedded",

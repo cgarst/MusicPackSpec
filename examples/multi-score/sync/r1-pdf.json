@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "recording": "r1",
+  "score": "pdf",
+  "anchorType": "pdf",
+  "points": [
+    {
+      "timeMs": 0,
+      "page": 1
+    },
+    {
+      "timeMs": 4000,
+      "page": 2
+    }
+  ]
+}

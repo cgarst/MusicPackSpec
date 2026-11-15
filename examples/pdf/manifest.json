@@ -4,25 +4,37 @@
   "song": {
     "title": "Example Song"
   },
-  "score": {
-    "path": "score/example.pdf",
-    "format": "pdf",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-    "pages": 3,
-    "startPage": 1,
-    "endPage": 3,
-    "instruments": [
-      {
-        "name": "Guitar",
-        "tuning": ["D2", "A2", "D3", "G3", "B3", "E4"]
-      }
-    ]
-  },
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/example.pdf",
+      "format": "pdf",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pages": 3,
+      "startPage": 1,
+      "endPage": 3,
+      "instruments": [
+        {
+          "name": "Guitar",
+          "tuning": [
+            "D2",
+            "A2",
+            "D3",
+            "G3",
+            "B3",
+            "E4"
+          ]
+        }
+      ]
+    }
+  ],
   "recordings": [
     {
       "id": "r1",
       "role": "original",
-      "sync": "sync/r1.json",
+      "sync": {
+        "main": "sync/r1.json"
+      },
       "sources": [
         {
           "type": "youtube",

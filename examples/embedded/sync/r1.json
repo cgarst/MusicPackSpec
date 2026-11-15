@@ -1,9 +1,18 @@
 {
   "version": 1,
   "recording": "r1",
+  "score": "main",
   "anchorType": "bar",
   "points": [
-    { "timeMs": 0, "bar": 0, "source": "manual" },
-    { "timeMs": 2150, "bar": 1, "source": "tap" }
+    {
+      "timeMs": 0,
+      "bar": 0,
+      "source": "manual"
+    },
+    {
+      "timeMs": 2150,
+      "bar": 1,
+      "source": "tap"
+    }
   ]
 }

@@ -2,7 +2,7 @@ import { zipParts, concatParts, openMpak, bytesSource } from '../src/core/index.
 
 const enc = new TextEncoder();
 export const u8 = (s) => enc.encode(s);
-export const goodManifest = async () => ({ format: 'mpak', version: 1, score: { path: 'score/a.txt', format: 'txt', sha256: await sha(u8('x')) } });
+export const goodManifest = async () => ({ format: 'mpak', version: 1, scores: [{ id: 'main', path: 'score/a.txt', format: 'txt', sha256: await sha(u8('x')) }] });
 import { sha256 as sha } from '../src/core/index.js';
 
 export const base = async () => [

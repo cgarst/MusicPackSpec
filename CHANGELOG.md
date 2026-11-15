@@ -2,6 +2,16 @@
 
 ## Version 1
 
+- A file can now hold several scores. The manifest field `score` is replaced by the array `scores`, and the first item is the
+  primary score. Each score has an `id`, and may have a `label`. Sync is kept per score and recording: a recording's `sync`
+  is now a map from a score `id` to a sync file path, and a sync file has a `score` field next to `recording`. Resolution
+  through `syncFrom` and `stemOf` runs for one score at a time, so a recording can have its own file for one score and share
+  another's points. `syncOffsetMs` may now appear together with `sync`, and applies to the scores that have no entry. An
+  `embedded` source can name the score that holds its audio (`score`, default the primary), and stem track links count the
+  primary score's tracks. Alternates (section 6.3) stay as the way for a score to reuse another score's sync points, and
+  are now listed in the `alternates` array of the score they derive from. Section 6.2, on variations, is replaced by
+  "Several scores".
+
 - Replaced `score.tuning` with `score.instruments`. A score can now be for several instruments, each with its own `name`,
   `tuning`, and `capo`, all optional. It is still informational and used only when the score file does not carry the
   information. Tunings are no longer required to be lowest string first, so re-entrant tunings fit.

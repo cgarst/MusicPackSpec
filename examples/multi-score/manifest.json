@@ -1,0 +1,49 @@
+{
+  "format": "mpak",
+  "version": 1,
+  "song": {
+    "title": "Example Song"
+  },
+  "scores": [
+    {
+      "id": "main",
+      "label": "Guitar Pro",
+      "path": "score/example.gp5",
+      "format": "gp5",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "alternates": [
+        {
+          "id": "easy",
+          "label": "Easy",
+          "path": "score/example-easy.gp5",
+          "format": "gp5",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "id": "pdf",
+      "label": "Engraved PDF",
+      "path": "score/example.pdf",
+      "format": "pdf",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pages": 2
+    }
+  ],
+  "recordings": [
+    {
+      "id": "r1",
+      "role": "original",
+      "sources": [
+        {
+          "type": "youtube",
+          "videoId": "EEEEEEEEEEE"
+        }
+      ],
+      "sync": {
+        "main": "sync/r1-main.json",
+        "pdf": "sync/r1-pdf.json"
+      }
+    }
+  ]
+}

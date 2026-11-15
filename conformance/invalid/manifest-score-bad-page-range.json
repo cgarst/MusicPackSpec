@@ -1,12 +1,15 @@
 {
   "format": "mpak",
   "version": 1,
-  "score": {
-    "path": "score/book.pdf",
-    "format": "pdf",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-    "pages": 10,
-    "startPage": 5,
-    "endPage": 3
-  }
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/book.pdf",
+      "format": "pdf",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pages": 10,
+      "startPage": 5,
+      "endPage": 3
+    }
+  ]
 }

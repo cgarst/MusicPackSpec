@@ -2,6 +2,11 @@
 
 ## Version 1
 
+- Added `scoreTracks` to a recording (section 7, "Tracks in a recording"). It maps a score `id` to `omits` or `only`, the
+  indexes of the score's tracks that are missing from the audio or the only ones in it, so a reader can mute them for a
+  backing track or a solo. Added the defined roles `alternate` and `solo`. A writer no longer has to call an alternate
+  version of the song `original` or keep the track list in an `x-` field. Both additions are ignorable by older readers.
+
 - Clarified that two recordings can share a source (section 7, "One source in several recordings"). A writer that has
   several sets of sync points for one video or audio file lists one recording for each set, and a reader keeps them all
   when it merges files. Section 6.2 no longer calls such recordings "the same recording": they are duplicates only when

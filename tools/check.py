@@ -47,6 +47,9 @@ def rule_errors_manifest(m):
         for k in r.get("sync", {}):
             if k not in sids:
                 errs.append(f"{r['id']}.sync names unknown score {k}")
+        for k in r.get("scoreTracks", {}):
+            if k not in sids:
+                errs.append(f"{r['id']}.scoreTracks names unknown score {k}")
         sids_src = [s["id"] for s in r.get("sources", []) if "id" in s]
         for s in r.get("sources", []):
             if "derivedFrom" in s and s["derivedFrom"] not in sids_src:

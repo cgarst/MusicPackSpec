@@ -143,7 +143,7 @@
       "required": ["id", "role", "sources"],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
-        "role": { "type": "string", "minLength": 1, "description": "Open vocabulary. Defined: original, backing, stem." },
+        "role": { "type": "string", "minLength": 1, "description": "Open vocabulary. Defined: original, backing, stem, alternate, solo." },
         "label": { "type": "string" },
         "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } },
         "sync": {
@@ -154,6 +154,19 @@
         },
         "syncFrom": { "$ref": "#/$defs/id" },
         "syncOffsetMs": { "type": "integer", "description": "Added to the points inherited through syncFrom. May be negative." },
+        "scoreTracks": {
+          "type": "object",
+          "description": "Tracks present in or missing from the audio, keyed by score id (SPEC 7).",
+          "propertyNames": { "$ref": "#/$defs/id" },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "omits": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 0 } },
+              "only": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 0 } }
+            },
+            "oneOf": [{ "required": ["omits"] }, { "required": ["only"] }]
+          }
+        },
         "stemOf": { "$ref": "#/$defs/id" },
         "stemsComplete": { "type": "boolean" },
         "stem": {

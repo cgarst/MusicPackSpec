@@ -66,6 +66,15 @@ function checkRecording(r, at, ck) {
     if ('track' in st) ck(`${at}/stem/track`, isInt(st.track) && st.track >= 0, 'must be an integer >= 0');
     if ('trackName' in st) ck(`${at}/stem/trackName`, isStr(st.trackName), 'must be a string');
   }
+  if ('scoreTracks' in r && ck(`${at}/scoreTracks`, isObj(r.scoreTracks), 'must be an object mapping score ids to track lists'))
+    for (const [k, v] of Object.entries(r.scoreTracks)) {
+      const p = `${at}/scoreTracks/${k}`;
+      ck(p, ID.test(k), 'the key must be a score id');
+      if (!ck(p, isObj(v), 'must be an object')) continue;
+      ck(p, ('omits' in v) !== ('only' in v), 'must have exactly one of omits and only');
+      for (const f of ['omits', 'only'])
+        if (f in v) ck(`${p}/${f}`, Array.isArray(v[f]) && v[f].every((n) => isInt(n) && n >= 0) && new Set(v[f]).size === v[f].length, 'must be an array of distinct integers >= 0');
+    }
   if ('stemOf' in r) ck(`${at}/role`, r.role === 'stem', 'must be "stem" when stemOf is present');
   if ('syncOffsetMs' in r) ck(`${at}`, 'syncFrom' in r, 'syncOffsetMs requires syncFrom');
 }
@@ -153,6 +162,7 @@ export function manifestRuleErrors(m) {
   for (const r of recs) {
     for (const k of ['syncFrom', 'stemOf']) if (k in r && !ids.includes(r[k])) errs.push(`${r.id}.${k} names unknown recording ${r[k]}`);
     for (const k of Object.keys(r.sync || {})) if (!sids.includes(k)) errs.push(`${r.id}.sync names unknown score ${k}`);
+    for (const k of Object.keys(r.scoreTracks || {})) if (!sids.includes(k)) errs.push(`${r.id}.scoreTracks names unknown score ${k}`);
     const srcIds = (r.sources || []).filter((s) => 'id' in s).map((s) => s.id);
     if (new Set(srcIds).size !== srcIds.length) errs.push(`${r.id}: duplicate source ids`);
     for (const s of r.sources || []) {

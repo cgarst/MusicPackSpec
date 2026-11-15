@@ -93,7 +93,14 @@
           "url": "https://media.invalid/backing.mp3",
           "mime": "audio/mpeg"
         }
-      ]
+      ],
+      "scoreTracks": {
+        "main": {
+          "omits": [
+            0
+          ]
+        }
+      }
     },
     {
       "id": "live",

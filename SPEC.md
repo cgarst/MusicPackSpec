@@ -313,6 +313,7 @@ copy. Alternates are listed in the `alternates` array of their parent. Each item
 | `sync` | object | no | Archive paths of this recording's sync files, one for each score: a map from a score `id` to a path. Section 9. |
 | `syncFrom` | string | no | Id of a recording whose sync points this one shares, for each score that has no `sync` entry here. |
 | `syncOffsetMs` | integer | no | Milliseconds added to the points shared through `syncFrom`. May be negative. Section 9. |
+| `scoreTracks` | object | no | Which tracks of each score the audio has or lacks: a map from a score `id` to `{ "omits": [...] }` or `{ "only": [...] }`. See "Tracks in a recording". |
 | `stemOf`, `stem`, `stemsComplete` | | no | Section 8. |
 
 ### Roles
@@ -322,9 +323,35 @@ copy. Alternates are listed in the `alternates` array of their parent. Each item
 - `original`: the released recording of the song.
 - `backing`: the song without the part being played.
 - `stem`: one part of a mix (section 8).
+- `alternate`: another version of the released recording, such as a remaster, a re-recording, or a second video of the same
+  song. A reader treats it like `original`, but does not take it as the default over an `original`.
+- `solo`: a recording of the part that is played alone, such as an isolated instrument.
 
 Suggested values: `live`, `cover`, `click`, `lesson`. If a reader does not know a role, it shows the `label` and treats
 the recording as an ordinary one.
+
+### Tracks in a recording
+
+`scoreTracks` says which tracks of a score are in the audio. The key is a score `id` (primary scores and other scores of
+`scores`, not alternates). The value has one of two fields, never both:
+
+- `omits`: indexes of the score's tracks that are **not** in the audio. This is the usual form for `backing`, where the
+  audio lacks the part you play.
+- `only`: indexes of the score's tracks that are the **only** ones in the audio, as for a `solo`.
+
+An index is 0-based in the order that the score file lists its tracks, as for `stem.track` (section 8). A recording with no
+entry for a score has all of that score's tracks, and a reader assumes nothing about them.
+
+A reader MAY use it to mute, hide, or highlight tracks so that the audio and the score agree, for example to play the
+score's own sound for the omitted track. It MUST ignore the entry when the score's `sha256` does not match its file, when
+the score's format does not list tracks (`pdf`, `txt`, `abc`), or when an index is out of range. A wrong mute is worse than
+none. `label` is for people only: a reader MUST NOT read track names out of it.
+
+```json
+{ "id": "v3", "role": "backing", "label": "Backing track (without Drums)",
+  "sync": { "main": "sync/v3.json" },
+  "scoreTracks": { "main": { "omits": [1] } }, "sources": [ ... ] }
+```
 
 ### Sources
 

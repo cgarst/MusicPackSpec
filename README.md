@@ -6,8 +6,7 @@ backing track, stems), and the **sync points** that align the score to each reco
 The file is a ZIP archive of ordinary files, so any language can read and write it. The score inside is an existing file
 (Guitar Pro, MusicXML, MuseScore, MIDI, ABC, PDF, or plain text), stored untouched.
 
-**Version 1.** If you build a score reader or editor, your feedback
-is welcome.
+**Version 1.** Feedback is welcome from anyone who builds a score reader or editor.
 
 ## What is in this repository
 
@@ -25,21 +24,24 @@ is welcome.
 
 ```
 song.mpak  (ZIP)
-├── manifest.json     song, score, recordings
-├── score/song.gp5      the score, byte for byte
-├── audio/mix.ogg     optional audio
-└── sync/mix.json     optional sync points
+├── manifest.json    song, score, recordings
+├── score/song.gp5   the score, byte for byte
+├── audio/mix.ogg    optional audio
+└── sync/mix.json    optional sync points
 ```
 
-- Everything about the song is optional. The only required content is a score.
+- The song metadata, recordings, and sync points are all optional. The only required content is a score.
 - A recording can be a file in the archive, a YouTube video, a web address, or only a reference.
-- Sync points work for Guitar Pro, MusicXML, and MuseScore scores (by bar), MIDI files (by tick), PDF scores (by page and
-  position), and text and ABC scores (by line and column).
-- Stems can be linked to the score's tracks, so a reader can build a backing mix.
+- Sync points work with these scores:
+  - Guitar Pro, MusicXML, and MuseScore: by bar.
+  - MIDI: by tick.
+  - PDF: by page and position.
+  - Text and ABC: by line and column.
+- A stem can be linked to a track in the score, so a reader can build a backing mix.
 
 ## Check the examples
 
-To validate the examples and the invalid cases, run:
+To validate the examples and the invalid cases, run these commands:
 
 ```
 python3 -m pip install jsonschema
@@ -56,21 +58,22 @@ python3 tools/check.py
 
 ## Reference implementation
 
-`reference/js` has two layers.
+`reference/js` has two layers:
 
-- **`src/core`** is the portable core: reader, writer and validator. It uses no Node, DOM or `Buffer` API and no package,
-  so it runs in Node 22, browsers and webviews. It reads an archive through a **ByteSource**,
-  `{ size, read(start, end) -> Promise<Uint8Array> }`, so it opens a file by reading the end of the archive, the
-  central directory, the manifest, the score and the sync files, and no audio. Audio is a byte range
+- **`src/core`** is the portable core: reader, writer and validator. It uses no Node, DOM, or `Buffer` API and no package,
+  so it runs in Node 22, browsers, and webviews. It reads an archive through a **ByteSource**,
+  `{ size, read(start, end) -> Promise<Uint8Array> }`. To open a file, it reads the end of the archive, the
+  central directory, the manifest, the score, and the sync files, but no audio. You get audio as a byte range
   (`opened.range(path)`) or a stream (`opened.stream(path)`). The writer takes audio as `{ source, start, end }` and returns a
-  list of parts to write, so audio is never copied into memory. Both handle ZIP64.
+  list of parts to write, so it never copies audio into memory. Both handle ZIP64.
 - **`src/node`** adds files on disk (`fileSource`, `openMpakFile`, `writeParts`), a streaming SHA-256 for audio, the
-  `mpak` command-line tool, and the Ajv check used by the tests.
+  `mpak` command-line tool, and the Ajv check that the tests use.
 
-In a browser, a source over a `Blob` is `{ size: blob.size, read: async (s, e) => new Uint8Array(await blob.slice(s, e).arrayBuffer()) }`.
-To build a `Blob` from the writer's parts, map a source part to `blob.slice(start, end)` on the blob behind that source.
+In a browser, create a source over a `Blob` like this:
+`{ size: blob.size, read: async (s, e) => new Uint8Array(await blob.slice(s, e).arrayBuffer()) }`.
+To build a `Blob` from the writer's parts, map each source part to `blob.slice(start, end)` on the blob behind that source.
 
-It needs Node 22 or later. The core has no runtime dependencies; Ajv is a development dependency. To run the tests and the tool:
+The reference implementation needs Node 22 or later. The core has no runtime dependencies, and Ajv is a development dependency. To run the tests and the tool, use these commands:
 
 ```
 cd reference/js && npm ci && npm test
@@ -80,8 +83,15 @@ node bin/mpak.js info out.mpak
 node bin/mpak.js unpack out.mpak <emptydir>
 ```
 
-The tests build real archives from every example, using dummy score and audio files. They feed the reader hostile archives
-(zip slip, duplicate names, decompression bombs, a bad CRC, encryption, overlapping entries), check
-that opening a 20 MiB bundle reads under 256 KiB, force ZIP64 on small data and read it back with Python's `zipfile`, check
-that `src/core` touches no platform API, and check that the hand-written validator agrees with the JSON Schemas on every
-example, invalid case and a set of mutations. `tools/check.py` is a second, independent check of the schemas, written in Python.
+The tests:
+
+- Build real archives from every example, using dummy score and audio files.
+- Feed the reader hostile archives: zip slip, duplicate names, decompression bombs, a bad CRC, encryption, and
+  overlapping entries.
+- Check that opening a 20 MiB bundle reads under 256 KiB.
+- Force ZIP64 on small data and read it back with Python's `zipfile`.
+- Check that `src/core` touches no platform API.
+- Check that the hand-written validator agrees with the JSON Schemas on every example, every invalid case, and a set of
+  mutations.
+
+`tools/check.py` is a second, independent check of the schemas, written in Python.

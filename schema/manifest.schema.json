@@ -92,10 +92,9 @@
         "pages": { "type": "integer", "minimum": 1 },
         "startPage": { "type": "integer", "minimum": 1 },
         "endPage": { "type": "integer", "minimum": 1 },
-        "tuning": {
+        "instruments": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^[A-G][#b]?(-?[0-9])?$" },
-          "minItems": 1
+          "items": { "$ref": "#/$defs/instrument" }
         }
       },
       "oneOf": [
@@ -116,6 +115,18 @@
           }
         }
       ]
+    },
+    "instrument": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "tuning": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-G][#b]?(-?[0-9])?$" },
+          "minItems": 1
+        },
+        "capo": { "type": "integer", "minimum": 1 }
+      }
     },
     "recording": {
       "type": "object",

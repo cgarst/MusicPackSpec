@@ -103,7 +103,15 @@ export function manifestSchemaErrors(m) {
     if ('pages' in t) ck('/score/pages', isInt(t.pages) && t.pages >= 1, 'must be an integer >= 1');
     if ('startPage' in t) ck('/score/startPage', isInt(t.startPage) && t.startPage >= 1, 'must be an integer >= 1');
     if ('endPage' in t) ck('/score/endPage', isInt(t.endPage) && t.endPage >= 1, 'must be an integer >= 1');
-    if ('tuning' in t) ck('/score/tuning', Array.isArray(t.tuning) && t.tuning.length >= 1 && t.tuning.every((n) => isStr(n) && TUNING.test(n)), 'must be a non-empty array of pitch names');
+    if ('instruments' in t && ck('/score/instruments', Array.isArray(t.instruments), 'must be an array')) {
+      t.instruments.forEach((ins, i) => {
+        const p = `/score/instruments/${i}`;
+        if (!ck(p, ins && typeof ins === 'object' && !Array.isArray(ins), 'must be an object')) return;
+        if ('name' in ins) ck(`${p}/name`, isStr(ins.name) && ins.name.length >= 1, 'must be a non-empty string');
+        if ('tuning' in ins) ck(`${p}/tuning`, Array.isArray(ins.tuning) && ins.tuning.length >= 1 && ins.tuning.every((n) => isStr(n) && TUNING.test(n)), 'must be a non-empty array of pitch names');
+        if ('capo' in ins) ck(`${p}/capo`, isInt(ins.capo) && ins.capo >= 1, 'must be an integer >= 1');
+      });
+    }
   }
   if ('recordings' in m && ck('/recordings', Array.isArray(m.recordings), 'must be an array')) m.recordings.forEach((r, i) => checkRecording(r, `/recordings/${i}`, ck));
   return errs;

@@ -2,6 +2,10 @@
 
 ## Version 1
 
+- Replaced `score.tuning` with `score.instruments`. A score can now be for several instruments, each with its own `name`,
+  `tuning`, and `capo`, all optional. It is still informational and used only when the score file does not carry the
+  information. Tunings are no longer required to be lowest string first, so re-entrant tunings fit.
+
 - Added alternate scores (section 6.3). The manifest's optional `alternates` array lists scores that are derived from the
   main score and keep its structure, such as an easy arrangement or a MusicXML export. The main score's sync points apply
   to them unchanged, so they must have the same anchor type and line up with it. Each alternate has its own `sha256`,

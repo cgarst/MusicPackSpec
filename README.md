@@ -1,6 +1,6 @@
 # Music Pack (.mpak)
 
-An open file format that packages one song for practice: the **score**, the **recordings** that go with it (original,
+An open file format that packages one song: the **score**, the **recordings** that go with it (original,
 backing track, stems), and the **sync points** that align the score to each recording.
 
 The file is a ZIP archive of ordinary files, so any language can read and write it. The score inside is an existing file

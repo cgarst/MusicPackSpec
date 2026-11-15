@@ -11,13 +11,11 @@
     "pages": 3,
     "startPage": 1,
     "endPage": 3,
-    "tuning": [
-      "D2",
-      "A2",
-      "D3",
-      "G3",
-      "B3",
-      "E4"
+    "instruments": [
+      {
+        "name": "Guitar",
+        "tuning": ["D2", "A2", "D3", "G3", "B3", "E4"]
+      }
     ]
   },
   "recordings": [

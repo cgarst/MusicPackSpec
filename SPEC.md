@@ -2,7 +2,7 @@
 
 **Version 1.** Changes within version 1 only add optional features. A change that breaks existing files is a new version. The manifest `version` field says which version a file uses.
 
-A Music Pack file (extension `.mpak`) packages one song for practice. It holds the score, the recordings that go with
+A Music Pack file (extension `.mpak`) packages one song. It holds the score, the recordings that go with
 it (original, backing track, stems), and the sync points that align the score to each recording. The file is a ZIP archive
 of ordinary files, so any language can read and write it.
 
@@ -29,7 +29,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY have the meanings defi
 
 Goals:
 
-- One file carries everything needed to practice a song: score, recordings, sync, and tuning.
+- One file carries everything needed to work with a song: score, recordings, sync, and instrument tunings.
 - A score reader can adopt all of the format or only the part it needs (section 2).
 - A file written by a simple script (a title and a score) is as valid as a file written by a full application.
 - Another tool can improve a file later, for example by adding audio files, without breaking the file.
@@ -176,7 +176,7 @@ exists:
 | `pages` | integer | no | Page count of the PDF file, for `pdf`. |
 | `startPage` | integer | no | 1-based first page of this song inside a multi-song PDF (`pdf` only). |
 | `endPage` | integer | no | 1-based last page of this song inside a multi-song PDF (`pdf` only, `>= startPage`, `<= pages`). |
-| `tuning` | string array | no | Tuning, lowest string first, as pitch names with or without octave numbers, for example `["E2","A2","D3","G3","B3","E4"]` or `["D","A","D","G","B","E"]`. |
+| `instruments` | object array | no | Instruments the score is for, with their tunings. See below. Informational. |
 
 - The score is required. A file with only recordings and sync is not valid, because sync points need a score to anchor to.
 - `score` MUST have either `path` or `externalPath`, and MUST NOT have both. `externalPath` is allowed only when `format`
@@ -190,12 +190,23 @@ exists:
 - `sha256` identifies the score file that the sync anchors and stem track links were written against (for an external PDF,
   the whole PDF file). If a reader finds a different hash, it SHOULD tell the user that sync points may be wrong, and it
   MUST NOT silently apply track links (section 8).
-- `tuning` is for scores that do not carry their own tuning, mainly `pdf` and `txt`. For a format that carries a tuning, the
-  tuning in the file wins. For those formats, a writer SHOULD omit `tuning` or make it agree with the file.
+- `instruments` is for scores that do not carry their own instrument and tuning information, mainly `pdf`, `txt`, and
+  `abc`. For a format that carries it, the file wins. For those formats, a writer SHOULD omit `instruments` or make it
+  agree with the file. A reader MAY show it to the user, for example "Bass: E A D G, Guitar: drop D, capo 2". It does
+  not change how sync or track links work.
+  Each entry is an object, and every field is optional:
+
+  | Field | Type | Meaning |
+  |---|---|---|
+  | `name` | string | A display name, for example `"Lead guitar"`. A reader MAY match it to a track by name, as for `stem.trackName`. |
+  | `tuning` | string array | The open strings as pitch names with or without octave numbers, for example `["E2","A2","D3","G3","B3","E4"]` or `["D","A","D","G","B","E"]`. List them in the order the score lists strings, usually lowest first. A re-entrant tuning (ukulele, banjo) keeps its own order. |
+  | `capo` | integer | The capo fret, 1 or more. Omit it for no capo. |
+
+  A score for several instruments lists one entry for each instrument that has a tuning worth stating.
 - The format decides the anchor type that sync uses (section 9): `gp3`, `gp4`, `gp5`, `gp`, `gpx`, `musicxml`, `mxl`,
   and `mscz` use `bar`; `midi` uses `tick`; `pdf` uses `pdf`; `txt` and `abc` use `text`.
-- The score can be for any instrument. `tuning` and the Guitar Pro formats suit guitar, but they do not limit what a
-  file can hold.
+- The score can be for any instrument. `instruments` can describe any fretted or stringed instrument, and the Guitar Pro
+  formats suit guitar, but neither limits what a file can hold.
 
 ### 6.1 Multi-song PDFs (`startPage`, `endPage`, and `externalPath`)
 
@@ -283,8 +294,8 @@ plus:
 - **Track links.** `stem.track` counts the main score's tracks (section 8). A reader MUST NOT apply a `stem.track` index to
   an alternate. It MAY find the track by `stem.trackName` when exactly one track in the alternate has that name.
   Otherwise it mutes nothing.
-- **Tuning and metadata** are per alternate. An alternate MAY have a different `tuning` (for example drop D), even though
-  its bar structure matches.
+- **Instruments and metadata** are per alternate. An alternate MAY have different `instruments` (for example drop D), even
+  though its bar structure matches.
 - A reader that does not know `alternates` ignores it (section 10) and shows only the main score.
 
 ## 7. Recordings
@@ -307,7 +318,7 @@ plus:
 `role` is an open vocabulary. Defined values:
 
 - `original`: the released recording of the song.
-- `backing`: the song without the part being practiced.
+- `backing`: the song without the part being played.
 - `stem`: one part of a mix (section 8).
 
 Suggested values: `live`, `cover`, `click`, `lesson`. If a reader does not know a role, it shows the `label` and treats
@@ -392,7 +403,7 @@ together.
   worse than no mute. A reader MUST also ignore track links when the score's `sha256` does not match the score file, and
   when the score format is `pdf`, `txt`, or `abc`.
 - **Building a backing mix.** If the mix has `stemsComplete: true`, a reader MAY play all its stems except the ones
-  linked to the track being practiced. A separate `backing` recording is then optional.
+  linked to the track being played. A separate `backing` recording is then optional.
 - **A stem that is not aligned with its parent.** Do not use `stemOf` for it. Give it `role: "stem"` and `stem`, and set
   `syncFrom` to the mix, with a `syncOffsetMs` (section 9).
 - **Stems with no mix.** If the file has stems but no recording that they were split from, and the first

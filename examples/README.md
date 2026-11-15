@@ -15,7 +15,7 @@ reference/js/bin/mpak.js pack <folder> out.mpak`. The tool sets the hashes of th
 | `embedded` | A Guitar Pro 7+ score whose own audio track is the recording (`embedded` source), with a YouTube fallback. |
 | `stems` | A mix with complete stems mapped to tracks, a backing track that shares the mix's sync with a 2-second offset, a source-less recording, and a third role. |
 | `guitar-only` | Guitar-only audio with no mix, and its own sync. |
-| `pdf` | A PDF score with page and position sync, and a manual tuning. |
+| `pdf` | A PDF score with page and position sync, and a manual instrument tuning. |
 | `text` | A text score with line and column sync. |
 | `musicxml` | A MusicXML score with bar sync, and a repeated pass (`occurrence` 1). |
 | `midi` | A MIDI file with tick sync. |

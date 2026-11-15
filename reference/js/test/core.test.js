@@ -152,12 +152,16 @@ test('src/core uses no Node, DOM or Buffer API', () => {
 });
 test('sha256 matches Node for a known value', async () => assert.equal(await sha256(u8('abc')), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'));
 
-// --- tuning, multi-song pdf, externalPath ----------------------------------------------------------------------
-test('tuning accepts pitch names with or without octaves', () => {
+// --- instruments, multi-song pdf, externalPath ----------------------------------------------------------------------
+test('instruments accept several tunings, pitch names with or without octaves, and a capo', () => {
   const baseM = { format: 'mpak', version: 1, score: { path: 'score/a.txt', format: 'txt', sha256: '0'.repeat(64) } };
-  assert.deepEqual(validateManifest({ ...baseM, score: { ...baseM.score, tuning: ['D', 'A', 'D', 'G', 'B', 'E'] } }), []);
-  assert.deepEqual(validateManifest({ ...baseM, score: { ...baseM.score, tuning: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'] } }), []);
-  assert.ok(validateManifest({ ...baseM, score: { ...baseM.score, tuning: ['H', 'A'] } }).length);
+  const withIns = (instruments) => validateManifest({ ...baseM, score: { ...baseM.score, instruments } });
+  assert.deepEqual(withIns([{ name: 'Guitar', tuning: ['D', 'A', 'D', 'G', 'B', 'E'], capo: 2 }, { name: 'Bass', tuning: ['E1', 'A1', 'D2', 'G2'] }]), []);
+  assert.deepEqual(withIns([{}]), []);
+  assert.ok(withIns([{ tuning: ['H', 'A'] }]).length);
+  assert.ok(withIns([{ tuning: [] }]).length);
+  assert.ok(withIns([{ capo: 0 }]).length);
+  assert.ok(withIns({ tuning: ['E'] }).length);
 });
 
 test('multi-song PDF startPage/endPage bounds are validated', () => {

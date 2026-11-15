@@ -20,20 +20,23 @@ def schema_errors(validator, doc):
 
 
 def rule_errors_manifest(m):
-    errs, recs, t = [], m.get("recordings", []), m.get("score", {})
-    if "startPage" in t and "endPage" in t and t["endPage"] < t["startPage"]:
-        errs.append("score.endPage must be >= score.startPage")
-    if "pages" in t and "startPage" in t and t["startPage"] > t["pages"]:
-        errs.append("score.startPage exceeds score.pages")
-    if "pages" in t and "endPage" in t and t["endPage"] > t["pages"]:
-        errs.append("score.endPage exceeds score.pages")
-    alts = m.get("alternates", [])
-    aids = [a["id"] for a in alts if "id" in a]
-    if len(aids) != len(set(aids)):
-        errs.append("duplicate alternate ids")
-    for a in alts:
-        if a.get("format") in ANCHOR and t.get("format") in ANCHOR and ANCHOR[a["format"]] != ANCHOR[t["format"]]:
-            errs.append(f"alternate {a.get('id')}: anchor type of {a['format']} differs from the main score")
+    errs, recs, scores = [], m.get("recordings", []), m.get("scores", [])
+    sids = [t.get("id") for t in scores]
+    all_ids = []
+    for t in scores:
+        parts = [(t, f"score {t.get('id')}")] + [(a, f"alternate {a.get('id')}") for a in t.get("alternates", [])]
+        for x, name in parts:
+            all_ids.append(x.get("id"))
+            if "startPage" in x and "endPage" in x and x["endPage"] < x["startPage"]:
+                errs.append(f"{name}: endPage must be >= startPage")
+            if "pages" in x and "startPage" in x and x["startPage"] > x["pages"]:
+                errs.append(f"{name}: startPage exceeds pages")
+            if "pages" in x and "endPage" in x and x["endPage"] > x["pages"]:
+                errs.append(f"{name}: endPage exceeds pages")
+            if x is not t and ANCHOR.get(x.get("format")) != ANCHOR.get(t.get("format")):
+                errs.append(f"{name}: anchor type of {x.get('format')} differs from its parent score {t.get('id')}")
+    if len(all_ids) != len(set(all_ids)):
+        errs.append("duplicate score or alternate ids")
     ids = [r["id"] for r in recs]
     if len(ids) != len(set(ids)):
         errs.append("duplicate recording ids")
@@ -41,10 +44,15 @@ def rule_errors_manifest(m):
         for k in ("syncFrom", "stemOf"):
             if k in r and r[k] not in ids:
                 errs.append(f"{r['id']}.{k} names unknown recording {r[k]}")
-        sids = [s["id"] for s in r.get("sources", []) if "id" in s]
+        for k in r.get("sync", {}):
+            if k not in sids:
+                errs.append(f"{r['id']}.sync names unknown score {k}")
+        sids_src = [s["id"] for s in r.get("sources", []) if "id" in s]
         for s in r.get("sources", []):
-            if "derivedFrom" in s and s["derivedFrom"] not in sids:
+            if "derivedFrom" in s and s["derivedFrom"] not in sids_src:
                 errs.append(f"{r['id']}: derivedFrom names unknown source {s['derivedFrom']}")
+            if s.get("type") == "embedded" and "score" in s and s["score"] not in sids:
+                errs.append(f"{r['id']}: source names unknown score {s['score']}")
     return errs
 
 
@@ -63,16 +71,19 @@ for mp in sorted(glob.glob(f"{ROOT}/examples/*/manifest.json")):
     d = os.path.dirname(mp)
     m = load(mp)
     errs = schema_errors(manifest_v, m) + rule_errors_manifest(m)
+    fmt = {t["id"]: t["format"] for t in m.get("scores", [])}
     for r in m.get("recordings", []):
-        if "sync" in r:
-            sp = os.path.join(d, r["sync"])
+        for sid, rel in r.get("sync", {}).items():
+            sp = os.path.join(d, rel)
             if not os.path.exists(sp):
-                errs.append(f"{r['id']}: missing {r['sync']}")
+                errs.append(f"{r['id']}: missing {rel}")
                 continue
             s = load(sp)
-            errs += [f"{r['sync']}: {e}" for e in schema_errors(sync_v, s) + rule_errors_sync(s, m["score"]["format"])]
+            errs += [f"{rel}: {e}" for e in schema_errors(sync_v, s) + rule_errors_sync(s, fmt.get(sid))]
             if s.get("recording") != r["id"]:
-                errs.append(f"{r['sync']}: recording id mismatch")
+                errs.append(f"{rel}: recording id mismatch")
+            if s.get("score") != sid:
+                errs.append(f"{rel}: score id mismatch")
     print(("FAIL " if errs else "ok   ") + os.path.relpath(mp, ROOT))
     for e in errs:
         print("     ", e)

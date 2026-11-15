@@ -18,6 +18,7 @@ The file is a ZIP archive of ordinary files, so any language can read and write 
 | [`examples/`](examples) | Unpacked example archives (manifest and sync files) |
 | [`conformance/invalid/`](conformance/invalid) | Documents that must be rejected |
 | [`tools/check.py`](tools/check.py) | Validates the examples and the invalid cases |
+| [`tools/mpak_manager/`](tools/mpak_manager) | Cross-platform desktop GUI (Windows, macOS, Linux) for reading, validating, and editing `.mpak` files |
 | [`reference/js/`](reference/js) | Reference reader, writer and validator: a portable core, plus a Node shell and command-line tool |
 
 ## At a glance
@@ -38,6 +39,18 @@ song.mpak  (ZIP)
   - PDF: by page and position.
   - Text and ABC: by line and column.
 - A stem can be linked to a track in the score, so a reader can build a backing mix.
+
+## MPAK Manager (Desktop GUI)
+
+[`tools/mpak_manager/`](tools/mpak_manager) is a native Python + PySide6 desktop application (Windows, macOS, Linux) for inspecting, validating, and editing `.mpak` archives and unpacked directories:
+
+```
+cd tools/mpak_manager
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e .
+mpak-manager
+```
 
 ## Check the examples
 

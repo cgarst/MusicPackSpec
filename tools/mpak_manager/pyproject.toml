@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mpak-manager"
+version = "0.1.0"
+description = "Cross-platform native desktop GUI for reading, inspecting, validating, and editing Music Pack (.mpak) archives."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "PySide6>=6.7",
+    "jsonschema>=4.20",
+    "pypdf>=4.0",
+]
+
+[project.gui-scripts]
+mpak-manager = "mpak_manager.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mpak_manager*"]

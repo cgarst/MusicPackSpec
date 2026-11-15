@@ -113,6 +113,12 @@ def convert(src: str) -> str:
 
     out = [HEADER % abstract, '<h2 class="no-num" id="conventions">Conventions</h2>', ""]
     out += [c + "\n" for c in conventions]
+    out += [
+        '<h2 class="no-num" id="tools">Tools</h2>',
+        "",
+        "A cross-platform desktop GUI, **MPAK Manager** (`tools/mpak_manager/`), is included in the repository for reading, validating, and editing `.mpak` archives on Windows, macOS, and Linux.",
+        "",
+    ]
 
     in_code = False
     body = lines[first_num:]

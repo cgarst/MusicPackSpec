@@ -1,2 +1,8 @@
 node_modules/
 site/
+.venv/
+__pycache__/
+*.pyc
+dist/
+build/
+*.egg-info/

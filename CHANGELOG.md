@@ -2,6 +2,9 @@
 
 ## Version 1
 
+- Added section 13.1, Extensions. It covers `x-` fields on any object, `x-<name>/` directories in the archive, own values
+  in open vocabularies, and the rule that an extension never changes a defined field and is always safe to ignore.
+
 - Removed `defaultRecording`. The first recording in `recordings` is the default, so a writer orders the list.
 
 - Renamed "tab" to "score" throughout. The manifest field `tab` is now `score`, the archive directory `tab/` is now

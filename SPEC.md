@@ -64,6 +64,7 @@ manifest.json     the manifest (section 4)
 score/<name>        the score file, byte for byte as supplied (omitted when score.externalPath is used; section 6)
 audio/<name>      optional audio files
 sync/<name>.json  optional sync files (section 9)
+x-<name>/...      optional extension files of one application (section 13.1)
 ```
 
 Rules:
@@ -538,9 +539,32 @@ A reader MUST protect against:
 - `version` is the major version. A change that older readers can ignore does not change it. Examples are a new optional
   field, role, source type, or anchor field. A change that older readers cannot ignore does change it.
 - Readers ignore what they do not know, so writers can add fields at any time.
-- **Extensions.** An application's private fields SHOULD start with `x-`, for example `x-myapp-color`. This specification
-  will not define any field that starts with `x-`.
-- A reader that rewrites a file SHOULD keep unknown fields and `x-` fields.
+- A reader that rewrites a file SHOULD keep unknown fields and `x-` fields, and unknown archive entries.
+
+### 13.1 Extensions
+
+A file MAY carry data that this specification does not define. Extensions let an application keep its own data in the
+file without a new version and without breaking other readers.
+
+- **Extension fields.** Any JSON object in `manifest.json` or in a sync file MAY have extra fields. This covers the
+  manifest itself and `song`, `score`, recordings, sources, `stem`, sync files and sync points. The name of an extension
+  field MUST start with `x-` followed by a short name for the application or vendor, for example `x-myapp-color`. This
+  specification will not define any field that starts with `x-`. A field without the `x-` prefix that this
+  specification does not define is reserved for later versions, and a writer SHOULD NOT use one.
+- **Extension files.** An application MAY add archive entries under a directory named `x-<name>/`, where `<name>` is the
+  same short name, for example `x-myapp/waveform.bin`. The entry names follow section 3, and rule 7 of section 3 applies:
+  readers ignore them. The manifest MAY point to them from an extension field.
+- **Open vocabularies.** Where this specification says a vocabulary is open (`role`, `stem.instrument`, source `type`), an
+  application MAY use values of its own. A reader that does not know a value follows the rule given for that field. Use
+  a name that is unlikely to clash, such as `x-myapp-loop`. The closed lists (`score.format` and `anchorType`) are
+  extended only by a later version of this specification.
+- **What an extension MUST NOT do.** It MUST NOT change the meaning of a defined field, and a file MUST remain correct
+  for a reader that ignores every extension. A change that readers cannot safely ignore is a new `version`, not an
+  extension.
+- **Readers.** A reader MUST ignore extension fields, entries and values that it does not understand, and MUST NOT
+  reject a file because of them. It MUST still apply the limits of section 12 to extension entries.
+- **Hashes.** An application MUST NOT put a hash or an offset of the archive itself in an extension (section 3, rule 6).
+  Hashes of file contents are fine.
 
 ## 14. Copyright, patents, names
 

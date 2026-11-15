@@ -33,5 +33,6 @@
         }
       ]
     }
-  ]
+  ],
+  "x-example-app": { "lastOpened": "2026-01-01", "loop": { "fromBar": 4, "toBar": 8 } }
 }

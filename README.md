@@ -7,7 +7,7 @@ The file is a ZIP archive of ordinary files, so any language can read and write 
 (Guitar Pro, MusicXML, MuseScore, MIDI, ABC, PDF, or plain text), stored untouched.
 
 **Version 1.** If you build a tab reader or editor, your feedback
-is welcome, especially on the [open questions](SPEC.md#15-open-questions).
+is welcome.
 
 ## What is in this repository
 

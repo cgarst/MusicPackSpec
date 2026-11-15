@@ -2,6 +2,10 @@
 
 ## Version 1
 
+- Removed the "Open questions" section and settled each one. Interpolation between anchors stays optional. The tab stays
+  required. `stem.track` stays a single index (a stem that mixes tracks has none). Bar and track indices are stable
+  because the tab file is stored untouched and pinned by `sha256`.
+
 - Renamed the format from Multi-Track Tab (`.mtab`) to Music Pack (`.mpak`). The manifest marker is now `"format": "mpak"`, the
   media type is `application/vnd.mpak+zip`, the schema ids are `urn:mpak:schema:...`, and the reference code uses `Mpak`
   names (`openMpak`, `MpakError`, `bin/mpak.js`). The name no longer says "tab" because the tab can now be any notation.

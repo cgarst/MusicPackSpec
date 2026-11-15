@@ -24,7 +24,6 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are used as defined in
 12. [Security](#12-security)
 13. [Versioning and extensions](#13-versioning-and-extensions)
 14. [Copyright, patents, names](#14-copyright-patents-names)
-15. [Open questions](#15-open-questions)
 
 ## 1. Goals and non-goals
 
@@ -173,8 +172,12 @@ exists: metadata inside the tab file, the tab's file name, the name of the `.mpa
 | `endPage` | integer | no | 1-based last page of this song inside a multi-song PDF (`pdf` only, `>= startPage`, `<= pages`). |
 | `tuning` | string array | no | Tuning, lowest string first, as pitch names with or without octave numbers, for example `["E2","A2","D3","G3","B3","E4"]` or `["D","A","D","G","B","E"]`. |
 
+- The tab is required. A file with only recordings and sync is not valid, because sync points need a tab to anchor to.
 - `tab` MUST have either `path` or `externalPath`, and MUST NOT have both. `externalPath` is allowed only when `format`
   is `pdf`.
+- Bar and track indices count what the stored tab file lists, and the file is stored untouched and pinned by `sha256`,
+  so a later version of the tab's format cannot change what an index means. A reader reads the file with the rules of
+  the format version that wrote it (`gp`, `mscz`).
 - A writer MUST store an embedded tab file (`path`) exactly as supplied and MUST NOT convert or re-encode it. The one
   exception is a `txt` or `abc` tab, which MUST be UTF-8. A writer converts any other encoding and records the hash of the
   converted file.
@@ -325,6 +328,8 @@ together.
 
 - **Guitar-only audio.** If the stem was split from a mix, give it `stemOf`. If there is no mix, leave out `stemOf` and
   give the stem its own sync file.
+- **One track per stem.** `stem.track` is a single index. A stem that mixes two tracks has no `track`, and a reader
+  mutes nothing for it. A writer that wants per-track muting for those tracks splits them into separate stems.
 - **A split of each guitar track.** Use several stems with `instrument: "guitar"`, each with a different `track`.
 - **Track links.** `stem.track` is the index of the track in the order that the tab file lists its tracks. If
   `stem.trackName` is present and the track at that index has a different name, the reader looks for exactly one track
@@ -548,13 +553,3 @@ A reader MUST protect against:
 - **Names.** "Music Pack" and the `.mpak` extension may be used freely to describe files and software that follow
   this specification.
 - **Media type.** This specification uses `application/vnd.mpak+zip` provisionally. It is not registered.
-
-## 15. Open questions
-
-These questions are open for a later version. Feedback from implementers would help most.
-
-1. Should interpolation between two position anchors on one page, or two column anchors in one block, be required instead of optional?
-2. Should the tab be optional, so that a file with only recordings and sync is valid? Version 1 says no.
-3. Should `stem.track` also accept a list, for a stem that mixes two tracks?
-4. Is the bar list of a `gp` (Guitar Pro 7 and later) file stable across versions of that format? Track and bar indices
-   need a test fixture. The same question applies to `mscz` across MuseScore versions.

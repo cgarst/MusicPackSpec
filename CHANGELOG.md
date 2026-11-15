@@ -2,6 +2,11 @@
 
 ## Version 1
 
+- Clarified that two recordings can share a source (section 7, "One source in several recordings"). A writer that has
+  several sets of sync points for one video or audio file lists one recording for each set, and a reader keeps them all
+  when it merges files. Section 6.2 no longer calls such recordings "the same recording": they are duplicates only when
+  their sync points are identical. Added the example `alternate-sync`.
+
 - Added "Changing a score" to section 11. A writer that replaces or edits a score file in an existing pack must update its
   `sha256` and must either confirm that the sync points still apply or remove them, and the same holds for an alternate.
   A reader or editor that stores sync points outside the file should key them by the score's `sha256`.

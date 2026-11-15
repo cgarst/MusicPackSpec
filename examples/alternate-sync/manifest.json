@@ -1,0 +1,52 @@
+{
+  "format": "mpak",
+  "version": 1,
+  "createdAt": "2026-11-14T12:00:00Z",
+  "generator": {
+    "name": "example-writer",
+    "version": "0.1"
+  },
+  "song": {
+    "title": "Example Song",
+    "artist": "Example Artist"
+  },
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/example.gp5",
+      "format": "gp5",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "name": "example.gp5"
+    }
+  ],
+  "recordings": [
+    {
+      "id": "r1",
+      "role": "original",
+      "label": "Studio version",
+      "sync": {
+        "main": "sync/r1.json"
+      },
+      "sources": [
+        {
+          "type": "youtube",
+          "videoId": "AAAAAAAAAAA"
+        }
+      ]
+    },
+    {
+      "id": "r2",
+      "role": "original",
+      "label": "Studio version (alternate sync)",
+      "sync": {
+        "main": "sync/r2.json"
+      },
+      "sources": [
+        {
+          "type": "youtube",
+          "videoId": "AAAAAAAAAAA"
+        }
+      ]
+    }
+  ]
+}

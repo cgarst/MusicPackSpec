@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "recording": "r2",
+  "score": "main",
+  "anchorType": "bar",
+  "points": [
+    {
+      "timeMs": 0,
+      "bar": 0,
+      "occurrence": 0,
+      "pos": 0,
+      "source": "manual"
+    },
+    {
+      "timeMs": 2190,
+      "bar": 1,
+      "occurrence": 0,
+      "pos": 0,
+      "source": "tap"
+    },
+    {
+      "timeMs": 4340,
+      "bar": 2,
+      "occurrence": 0,
+      "pos": 0,
+      "source": "tap"
+    },
+    {
+      "timeMs": 6490,
+      "bar": 1,
+      "occurrence": 1,
+      "pos": 0,
+      "source": "tap"
+    }
+  ]
+}

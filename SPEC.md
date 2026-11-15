@@ -252,7 +252,9 @@ They need not share a format or a structure. The first is the primary score.
   `artist`, or by asking the user) is outside this specification (section 10). It MUST NOT overwrite or remove the
   scores, recordings or sync points it already has unless the user asks it to. A score whose `sha256` matches one it
   already has is the same score, and a reader SHOULD NOT add a duplicate. Two recordings with the same `youtube`
-  `videoId`, or the same audio `sha256`, are the same recording, and a reader MAY store it once.
+  `videoId`, or the same audio `sha256`, share a source, and a reader MAY store that source once. It MUST keep both
+  recordings, with their sync files, unless the two recordings have the same sync points for every score (section 7,
+  "One source in several recordings").
 - A reader that shows only one score shows the primary score.
 
 ### 6.3 Alternate scores
@@ -368,6 +370,20 @@ Other types are allowed. A source of any type MAY appear on any recording, inclu
 
 The first recording in `recordings` is the default. A reader uses it first, and a writer puts the recording it wants
 used first at the start of the list. There is no separate field for this.
+
+### One source in several recordings
+
+Two recordings MAY list the same source, for example the same YouTube video or the same audio file. A writer does this
+when it has more than one set of sync points for one performance, such as points from two people or two tools that differ
+slightly. It gives each recording its own `sync` entries, and it SHOULD say in each `label` how they differ, for example
+`"Studio version (alternate sync)"`. The recording that the writer wants used first goes first (see "Default recording").
+
+A recording has one sync file for each score (section 9), so alternate sync points are separate recordings, not a second
+entry in one `sync` map. A reader SHOULD offer them as choices and MUST NOT merge their points. A reader that stores the
+shared source once (section 6.2) keeps every recording that uses it.
+
+Two recordings that share a source and have identical sync points for every score are duplicates, and a writer SHOULD list
+only one.
 
 ### Timeline
 

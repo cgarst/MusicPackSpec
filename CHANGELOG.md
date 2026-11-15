@@ -4,7 +4,9 @@
 
 - Added `scoreTracks` to a recording (section 7, "Tracks in a recording"). It maps a score `id` to `omits` or `only`, the
   indexes of the score's tracks that are missing from the audio or the only ones in it, so a reader can mute them for a
-  backing track or a solo. Added the defined roles `alternate` and `solo`. A writer no longer has to call an alternate
+  backing track or a solo. An optional `names` list holds the tracks' names as a check: if a name differs from the track at
+  its index, the reader ignores the entry. Section 11 now says that a writer that changes a score's tracks updates or
+  removes `scoreTracks`. Added the defined roles `alternate` and `solo`. A writer no longer has to call an alternate
   version of the song `original` or keep the track list in an `x-` field. Both additions are ignorable by older readers.
 
 - Clarified that two recordings can share a source (section 7, "One source in several recordings"). A writer that has

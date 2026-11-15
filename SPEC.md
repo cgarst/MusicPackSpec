@@ -342,15 +342,20 @@ the recording as an ordinary one.
 An index is 0-based in the order that the score file lists its tracks, as for `stem.track` (section 8). A recording with no
 entry for a score has all of that score's tracks, and a reader assumes nothing about them.
 
+The entry MAY also have `names`: the names of those tracks as the score file gives them, in the same order and the same
+number as the indexes. It is a check, like `stem.trackName`. If the track at an index has a different name, the reader
+ignores the whole entry, because the track order has changed since it was written. A writer that knows the track names
+SHOULD write `names`.
+
 A reader MAY use it to mute, hide, or highlight tracks so that the audio and the score agree, for example to play the
 score's own sound for the omitted track. It MUST ignore the entry when the score's `sha256` does not match its file, when
-the score's format does not list tracks (`pdf`, `txt`, `abc`), or when an index is out of range. A wrong mute is worse than
+the score's format does not list tracks (`pdf`, `txt`, `abc`), when an index is out of range, or when `names` does not match (above). A wrong mute is worse than
 none. `label` is for people only: a reader MUST NOT read track names out of it.
 
 ```json
 { "id": "v3", "role": "backing", "label": "Backing track (without Drums)",
   "sync": { "main": "sync/v3.json" },
-  "scoreTracks": { "main": { "omits": [1] } }, "sources": [ ... ] }
+  "scoreTracks": { "main": { "omits": [1], "names": ["Drums"] } }, "sources": [ ... ] }
 ```
 
 ### Sources
@@ -644,6 +649,9 @@ edits a score file in an existing pack has to keep that mark true. A writer that
    primary score's sync only while it still lines up with that score. If an edit to a score breaks that, the alternate
    is no longer an alternate and the writer MUST remove it from `alternates`, or turn it into a score of its own.
 4. MUST NOT apply `stem.track` links to a changed primary score unless the track order is unchanged.
+5. MUST update or remove each recording's `scoreTracks` entry for a changed score when the edit adds, removes, or reorders
+   tracks, the same as for item 4. An entry whose `names` no longer match is ignored by readers, but a writer MUST NOT
+   rely on that.
 
 A reader or editor that keeps sync points outside the file SHOULD key them by the score's `sha256`, and MAY carry them to
 a new hash only when the user, or the tool that made the edit, says the structure is unchanged. A different hash does

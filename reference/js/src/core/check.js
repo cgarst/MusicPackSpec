@@ -74,6 +74,7 @@ function checkRecording(r, at, ck) {
       ck(p, ('omits' in v) !== ('only' in v), 'must have exactly one of omits and only');
       for (const f of ['omits', 'only'])
         if (f in v) ck(`${p}/${f}`, Array.isArray(v[f]) && v[f].every((n) => isInt(n) && n >= 0) && new Set(v[f]).size === v[f].length, 'must be an array of distinct integers >= 0');
+      if ('names' in v) ck(`${p}/names`, Array.isArray(v.names) && v.names.every(isStr), 'must be an array of strings');
     }
   if ('stemOf' in r) ck(`${at}/role`, r.role === 'stem', 'must be "stem" when stemOf is present');
   if ('syncOffsetMs' in r) ck(`${at}`, 'syncFrom' in r, 'syncOffsetMs requires syncFrom');
@@ -162,7 +163,11 @@ export function manifestRuleErrors(m) {
   for (const r of recs) {
     for (const k of ['syncFrom', 'stemOf']) if (k in r && !ids.includes(r[k])) errs.push(`${r.id}.${k} names unknown recording ${r[k]}`);
     for (const k of Object.keys(r.sync || {})) if (!sids.includes(k)) errs.push(`${r.id}.sync names unknown score ${k}`);
-    for (const k of Object.keys(r.scoreTracks || {})) if (!sids.includes(k)) errs.push(`${r.id}.scoreTracks names unknown score ${k}`);
+    for (const [k, v] of Object.entries(r.scoreTracks || {})) {
+      if (!sids.includes(k)) errs.push(`${r.id}.scoreTracks names unknown score ${k}`);
+      const list = v && (v.omits || v.only);
+      if (v && Array.isArray(v.names) && Array.isArray(list) && v.names.length !== list.length) errs.push(`${r.id}.scoreTracks.${k}: names must have one name for each index`);
+    }
     const srcIds = (r.sources || []).filter((s) => 'id' in s).map((s) => s.id);
     if (new Set(srcIds).size !== srcIds.length) errs.push(`${r.id}: duplicate source ids`);
     for (const s of r.sources || []) {

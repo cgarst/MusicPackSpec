@@ -47,9 +47,12 @@ def rule_errors_manifest(m):
         for k in r.get("sync", {}):
             if k not in sids:
                 errs.append(f"{r['id']}.sync names unknown score {k}")
-        for k in r.get("scoreTracks", {}):
+        for k, v in r.get("scoreTracks", {}).items():
             if k not in sids:
                 errs.append(f"{r['id']}.scoreTracks names unknown score {k}")
+            lst = v.get("omits", v.get("only"))
+            if "names" in v and lst is not None and len(v["names"]) != len(lst):
+                errs.append(f"{r['id']}.scoreTracks.{k}: names must have one name for each index")
         sids_src = [s["id"] for s in r.get("sources", []) if "id" in s]
         for s in r.get("sources", []):
             if "derivedFrom" in s and s["derivedFrom"] not in sids_src:

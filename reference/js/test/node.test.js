@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sha256, bytesSource, openMpak } from '../src/core/index.js';
 import { packDirToBytes, packDir, writeParts, openMpakFile, audioHashWarnings, readDir } from '../src/node/index.js';
+import { spawnSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const examples = fs.readdirSync(path.join(ROOT, 'examples'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
@@ -102,4 +103,32 @@ test('externalPath is hashed on packDir, omitted from archive, and resolved on o
     assert.equal(rMissing.score, null);
     assert.match(rMissing.warnings[0], /missing external score file/);
   } finally { await rMissing.close(); }
+});
+
+// Directory form (SPEC section 3.2)
+test('a directory, its archive, and the directory unpacked from it hold the same files, byte for byte', async () => {
+  const dir = stage('enriched');
+  const archive = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'mpak-out-')), 'out.mpak');
+  const back = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'mpak-back-')), 'dir');
+  const cli = path.join(ROOT, 'reference/js/bin/mpak.js');
+  assert.equal(spawnSync('node', [cli, 'pack', dir, archive]).status, 0);
+  assert.equal(spawnSync('node', [cli, 'unpack', archive, back]).status, 0);
+  const want = await readDir(dir), got = await readDir(back);
+  assert.deepEqual([...got.files.keys()].sort(), [...want.files.keys()].sort());
+  for (const [name, bytes] of want.files) assert.deepEqual(got.files.get(name), bytes, name);
+  assert.deepEqual(got.manifest, want.manifest);
+});
+
+test('a symbolic link in a directory pack is refused, not followed', async (t) => {
+  const dir = stage('enriched');
+  const outside = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'mpak-secret-')), 'secret.txt');
+  fs.writeFileSync(outside, 'not part of the pack');
+  try { fs.symlinkSync(outside, path.join(dir, 'score', 'link.txt')); } catch { t.skip('symbolic links are not available here'); return; }
+  await assert.rejects(readDir(dir), /symbolic link/);
+});
+
+test('a directory file with an unsafe name is refused', async () => {
+  const dir = stage('enriched');
+  fs.writeFileSync(path.join(dir, 'audio', 'bad\\name.ogg'), 'x');
+  await assert.rejects(readDir(dir));
 });

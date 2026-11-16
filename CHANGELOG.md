@@ -2,6 +2,14 @@
 
 ## Version 1
 
+- Added the directory form (section 3.2): a pack can be a directory whose files are the entries of the archive, with the same
+  names and bytes, so a store that holds files separately (a folder, a cloud drive, object storage) can change one entry
+  without rewriting a ZIP archive and can serve one file on its own. It is the same pack as the `.mpak` file with the same
+  entries, and packing and unpacking change no bytes. A writer writes every new or changed file first and `manifest.json` last,
+  and in this form MUST write `size` and `entries` (section 4, "Integrity") so that a half-written pack can be told
+  from a finished one; a reader needs no listing, does not follow symbolic links, and re-reads once when a file differs
+  from the manifest. Section 12 gets a rule for directories. No change to the manifest, so no new version.
+
 - Added integrity data (section 4, "Integrity"). A score and a `file` audio source can carry `size`, the size of the file in
   bytes, next to `sha256`. A new manifest field `entries` maps an archive path to `{ size, sha256 }` for the entries that the
   manifest names by path only, the sync files and the beat files. A reader SHOULD warn on a mismatch and MAY skip a sync or

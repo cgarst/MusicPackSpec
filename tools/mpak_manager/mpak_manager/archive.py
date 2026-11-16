@@ -125,6 +125,8 @@ class MpakPackage:
             for fname in files:
                 full = Path(root) / fname
                 rel = full.relative_to(dir_path).as_posix()
+                if full.is_symlink():  # SPEC section 3.2 and 12: never follow a symbolic link
+                    raise MpakSecurityError(f"Refusing a symbolic link in the pack directory: {rel}")
                 err = check_entry_name(rel)
                 if err:
                     raise MpakSecurityError(err)

@@ -39,6 +39,8 @@ song.mpak  (ZIP)
   - PDF: by page and position.
   - Text and ABC: by line and column.
 - A stem can be linked to a track in the score, so a reader can build a backing mix.
+- A pack can also be a directory of the same files (section 3.2), for stores that hold files separately: a cloud drive, an
+  object store, a folder. It is the same pack, and a tool converts between the two without changing any bytes.
 
 ## MPAK Manager (Desktop GUI)
 

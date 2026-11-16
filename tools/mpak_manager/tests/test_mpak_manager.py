@@ -137,6 +137,23 @@ class TestArchiveRoundTrip(unittest.TestCase):
             reopened.manifest["entries"]["sync/mix.json"]["size"] += 1
             self.assertTrue(any("Size differs" in i.message for i in validate_package(reopened, self.schemas)))
 
+    def test_directory_pack_refuses_a_symbolic_link(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "pack"
+            (root / "score").mkdir(parents=True)
+            (root / "manifest.json").write_text(
+                '{"format":"mpak","version":1,"scores":[{"id":"a","path":"score/a.txt","format":"txt","sha256":"%s"}]}' % ("0" * 64),
+                encoding="utf-8",
+            )
+            secret = Path(tmp) / "secret.txt"
+            secret.write_text("outside the pack", encoding="utf-8")
+            try:
+                (root / "score" / "a.txt").symlink_to(secret)
+            except (OSError, NotImplementedError):
+                self.skipTest("symbolic links are not available here")
+            with self.assertRaises(MpakSecurityError):
+                MpakPackage.open(root)
+
     def test_rejects_zip_slip_and_mimetype(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             bad_zip = Path(tmp) / "bad.mpak"

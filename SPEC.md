@@ -103,6 +103,52 @@ A file can hold hours of audio, so this specification sets no size limit of its 
    the background.
 7. A reader reads the score, the manifest, the sync files, and the beat files whole. A reader MAY refuse a score larger than 256 MiB.
 
+### 3.2 Directory form
+
+A pack can also be kept as a directory instead of a `.mpak` file. This suits a store that holds files separately, such as
+a folder on disk, a cloud drive, or a prefix in object storage, where changing one entry of a ZIP archive means rewriting the
+whole archive, and where a reader that wants one file can fetch just that file.
+
+A pack in directory form is a directory whose files are the entries of the archive, with the same names, relative to the
+directory. `manifest.json` is the file at its root. Each file holds exactly the bytes that the entry would hold in the
+archive. Everything else in this specification applies unchanged, with "entry" meaning a file of the directory. A pack in
+directory form and a `.mpak` file with the same entries are the same pack. Rules:
+
+1. **Recognition.** A directory is a pack when it holds a `manifest.json` that is valid and whose `format` is `mpak`. The
+   name of the directory has no meaning. A tool SHOULD NOT end it with `.mpak`, so that it is not mistaken for an archive.
+   There is no media type.
+2. **Names.** The name rules of section 3 (rule 3) apply to the path of every file, relative to the pack's directory,
+   including that two names MUST NOT differ only by case. A reader that cannot read or store a name on its filesystem (a
+   name that the system reserves, or one that another name collides with there) MUST reject that entry. It MUST NOT
+   rename it.
+3. **No compression, no listing needed.** Every file is stored as it is. Rules 4 and 5 of section 3 and the whole of section
+   3.1 are about the ZIP container and do not apply, except that a reader still MUST NOT hash audio in order to open a pack.
+   The manifest names every entry that a reader needs, so a reader MUST NOT require a listing of the directory. It reads
+   the manifest, then the files it names. A reader that does list the directory ignores any file that the manifest does not
+   name (section 3, rule 7), and applies the limit on entries in section 12 to what it lists. A reader MAY read any file by
+   range, and MAY play an audio file from the store directly.
+4. **Writing in an order that survives an interruption.** A directory cannot be replaced at once, so a reader can see it
+   half written. A writer that creates or changes a pack:
+   - writes each new or changed file whole (for a store that can, by writing under another name and renaming it, or
+     with a single upload), and writes `manifest.json` last. `manifest.json` is the commit point: a pack is what its manifest says.
+   - removes a file that it dropped or replaced only after it has written the manifest. A writer MAY remove a file that it
+     replaced or dropped, and SHOULD keep `x-` files and files it does not recognize (section 13).
+   - MUST write `size` for every score and every `file` source, and an `entries` item for every sync file and beat file
+     (section 4, "Integrity"). In an archive these are optional because the central directory gives sizes. A directory has
+     no such record, and without these a reader cannot tell a finished file from one that is still being written.
+5. **Reading a pack that may be mid-write.** A reader that finds that a file's size or hash differs from the manifest
+   (section 4, "Integrity") SHOULD treat the pack as being written: read `manifest.json` and that file once more, and
+   if they still differ, warn as section 4 says and use what it has. A reader MUST NOT delete or repair a file for this.
+6. **Writers that overlap.** This specification defines no locking. A writer that replaces `manifest.json` SHOULD first
+   check that it has not changed since the writer read it, by a version, an entity tag, or a hash, and if it has, read it
+   again and merge (section 6.2) before it writes. A store that can write only if the version still matches makes this
+   exact; one that cannot leaves a small gap in which an edit can be lost, but the pack stays valid.
+7. **Converting.** Packing a directory writes its files as the entries of an archive (section 3), and unpacking an archive
+   writes its entries as files. Neither changes any bytes of a file, nor the manifest, so `id` and every hash stay valid.
+   Timestamps and permissions are not part of the pack.
+8. **`externalPath`.** A score's `externalPath` (section 6.1) is resolved inside the directory that contains the pack's
+   directory, and a reader MUST reject any path that escapes it, as for a `.mpak` file.
+
 ## 4. Manifest
 
 `manifest.json` is a JSON object. Its JSON Schema is `schema/manifest.schema.json`.
@@ -141,7 +187,8 @@ as separate files, can tell a complete file from a damaged or half-written one.
 }
 ```
 
-All of it is optional, and none of it is needed to open a file.
+All of it is optional in an archive, and none of it is needed to open a file. A pack in directory form MUST carry it
+(section 3.2, rule 4).
 
 - A reader SHOULD warn when a size or hash that the manifest gives does not match the entry it reads, as for a score's
   `sha256` (sections 10 and 12). It MAY then skip the sync or beat file that failed. It MUST NOT use a `size` from the
@@ -793,7 +840,7 @@ A writer:
 6. SHOULD write audio entries Stored, and MUST use ZIP64 where section 3.1 requires it.
 7. SHOULD write a file in one pass over its audio, without holding the audio in memory.
 8. SHOULD write `size` for each score and `file` source and an `entries` item for each sync and beat file, and MUST keep them
-   true when it changes one of those files (section 4, "Integrity").
+   true when it changes one of those files (section 4, "Integrity"). In directory form it MUST write them (section 3.2).
 9. SHOULD write `id`, MUST keep the `id` of a pack it edits or copies for the same song, and MUST write a new `id` for a pack
    of a different song (section 4, "Pack identity").
 
@@ -846,6 +893,11 @@ A reader MUST protect against:
   times its stored size, the manifest is over 1 MiB, a sync file or a beat file is over 8 MiB, or the archive has more than 1000
   entries. A reader MAY use higher limits for `audio/` entries. A reader counts inflation on the output as it is produced (section 3.1).
 - **Duplicate and overlapping entries.** Reject archives whose central directory has duplicate names or overlapping data.
+- **Directory form (section 3.2).** Do not follow a symbolic link, junction, or other reparse point for any file of a pack:
+  reject the entry instead. Resolve each name inside the pack's directory and reject one that leaves it. Open a file once and
+  read through the handle you checked, because the directory can change between a check and a read. The limits above
+  apply to the files of a directory as they do to the entries of an archive, except the one on inflation, which has
+  nothing to count.
 - **Active content.** A PDF can contain scripts and links, and an audio file can be malformed. Open both with the same
   precautions as for a file from the internet.
 - **Remote content.** `url` and `youtube` sources load third-party content. Load them only when the user asks (section 10),
@@ -859,7 +911,7 @@ A reader MUST protect against:
 - `version` is the major version. A change that older readers can ignore does not change it. Examples are a new optional
   field, role, source type, or anchor field. A change that older readers cannot ignore changes it.
 - Readers ignore what they do not know, so writers can add fields at any time.
-- A reader that rewrites a file SHOULD keep unknown fields and `x-` fields, and unknown archive entries.
+- A reader that rewrites a file SHOULD keep unknown fields and `x-` fields, and unknown archive entries (in directory form, unknown files).
 
 ### 13.1 Extensions
 

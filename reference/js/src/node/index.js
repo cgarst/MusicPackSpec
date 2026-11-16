@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { openMpak, buildMpak, verifyAudioHash, concatParts, scoreEntry, sha256, MpakError } from '../core/index.js';
+import { openMpak, buildMpak, verifyAudioHash, concatParts, scoreEntry, sha256, checkEntryName, MpakError } from '../core/index.js';
 
 export * from '../core/index.js';
 
@@ -70,10 +70,13 @@ export async function writeParts(p, parts) {
 export async function readDir(dir, { fixHashes = true } = {}) {
   const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
   const files = new Map();
+  // SPEC 3.2 and 12: a symbolic link is never followed, and every name must be a safe archive name
   const walk = (d) => { for (const n of fs.readdirSync(d, { withFileTypes: true })) {
     const full = path.join(d, n.name);
+    const rel = path.relative(dir, full).split(path.sep).join('/');
+    if (n.isSymbolicLink()) throw new MpakError(`refusing a symbolic link: ${rel}`);
     if (n.isDirectory()) walk(full);
-    else if (n.name !== 'manifest.json') files.set(path.relative(dir, full).split(path.sep).join('/'), new Uint8Array(fs.readFileSync(full)));
+    else if (rel !== 'manifest.json') { checkEntryName(rel); files.set(rel, new Uint8Array(fs.readFileSync(full))); }
   } };
   walk(dir);
   if (fixHashes) {

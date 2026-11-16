@@ -2,6 +2,13 @@
 
 ## Version 1
 
+- Added the manifest field `id` (section 4, "Pack identity"): the identity of a pack, kept when the pack is edited, copied
+  or moved. 1 to 64 of `A-Z a-z 0-9 _ -`, a lowercase UUID for new packs (version 4, or version 5 when derived from the score). A writer keeps the `id` of a pack it edits
+  or copies for the same song and writes a new one for a different song, and a reader MAY treat two files with the same `id`
+  as one song and merge them (section 6.2). A tool that gives an `id` to a file without one SHOULD derive it as a UUID version 5 of the primary
+  score's `sha256`, in a fixed namespace, so that two tools agree. It says nothing about authorship or trust. Optional and ignorable by older readers, so there is no new
+  version. Added the example `enriched` with an `id` and two invalid cases.
+
 - Clarified the difference between a beat file and sync (section 7, "Beat file"; section 9). Added a table that compares
   them and says what a reader can offer for each combination of the two, and when a beat file matters most (scores with
   no beat structure of their own, and recordings with no synced score). The Playback profile now lists beat files. No

@@ -1,0 +1,13 @@
+{
+  "format": "mpak",
+  "version": 1,
+  "scores": [
+    {
+      "id": "main",
+      "path": "score/a.gp5",
+      "format": "gp5",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

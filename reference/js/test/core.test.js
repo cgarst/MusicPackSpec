@@ -6,7 +6,7 @@ import zlib from 'node:zlib';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { MpakError, buildMpak, concatParts, openMpak, bytesSource, sha256, zipParts, entryRange, validateManifest } from '../src/core/index.js';
+import { MpakError, derivedPackId, buildMpak, concatParts, openMpak, bytesSource, sha256, zipParts, entryRange, validateManifest } from '../src/core/index.js';
 import { u8, goodManifest, base, build, open } from './helpers.js';
 
 const rejects = async (files, re, opts) => {
@@ -206,4 +206,10 @@ test('the score field is only defined on an embedded source', () => {
   assert.ok(validateManifest(m({ type: 'embedded', score: 'nope' })).length);
   assert.ok(validateManifest(m({ type: 'embedded', score: 5 })).length);
   assert.deepEqual(validateManifest(m({ type: 'x-other', score: 5 })), []);
+});
+
+test('a derived pack id is the version 5 UUID of the score hash, and is stable', async () => {
+  assert.equal(await derivedPackId('0'.repeat(64)), '8980d354-7334-5de0-8804-bb35580aea65');
+  assert.equal(await derivedPackId('A'.repeat(64)), await derivedPackId('a'.repeat(64)));
+  assert.deepEqual(validateManifest({ ...(await goodManifest()), id: await derivedPackId('1'.repeat(64)) }), []);
 });

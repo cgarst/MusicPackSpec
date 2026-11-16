@@ -111,6 +111,7 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 |---|---|---|---|
 | `format` | `"mpak"` | yes | Format marker. |
 | `version` | integer, `1` | yes | Spec major version. A reader MUST reject a higher value and say so. |
+| `id` | string | no | The identity of this pack: a name that stays the same when the pack is edited, copied, or moved between devices and libraries. 1 to 64 of `A-Z a-z 0-9 _ -`. A writer SHOULD use a lowercase UUID: version 4, or version 5 when derived from the primary score (below). See "Pack identity". |
 | `createdAt` | string, date-time | no | When the file was created. |
 | `generator` | `{ name, version? }` | no | The software that wrote the file. |
 | `song` | object | no | Section 5. It can be empty or absent. |
@@ -119,6 +120,27 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 
 Other fields are allowed. A reader MUST ignore a field it does not know. A field that is private to an application SHOULD start with
 `x-` (section 13).
+
+### Pack identity
+
+`id` names the pack, so that a library, a sync service, or a person can tell that two files are the same song at different
+moments, without comparing titles. It is not derived from the pack's contents or from the song metadata, because those
+change when the pack is edited.
+
+- A writer that creates a pack SHOULD write an `id`. A random UUID (version 4) is the usual choice. A tool that converts
+  another source into a pack, and so makes the same pack again from the same input, MAY use the derived `id` below, which
+  makes the result repeatable.
+- A writer that edits a pack, or writes a copy of it for the same song, MUST keep the `id` it has.
+- A writer that makes a pack for a different song out of an existing one (the copy is edited into another song) MUST
+  write a new `id`.
+- A reader MAY treat two files with the same `id` as the same song. It then merges them as section 6.2 says, and MUST NOT
+  overwrite or remove what it already has unless the user asks it to. A file without an `id` is matched by `song.ids`, by
+  `title` and `artist`, or by asking the user (section 6.2), and a reader MAY give it an `id` of its own when it stores it.
+  A tool that does so, or that uses a derived `id`, derives it as the UUID version 5 (RFC 4122) of the primary score's `sha256` (the
+  64 lowercase hex characters, as UTF-8) in the namespace `03924935-9520-4f8c-91cd-ebd5f6cf57c5`, so that two tools that give an `id` to the same file
+  choose the same one. For a `sha256` of 64 zeros that is `8980d354-7334-5de0-8804-bb35580aea65`. The tool then stores the `id` and does not derive it again.
+- The `id` says nothing about who made the pack and proves nothing. A reader MUST NOT use it for a decision about trust or
+  permission.
 
 ## 5. Song metadata
 
@@ -251,8 +273,9 @@ They need not share a format or a structure. The first is the primary score.
   `embedded` source (section 7) is in it unless the source names another score. Moving another score to the front changes
   both of those, but it changes no sync file, because sync is keyed by score `id`.
 - **Instruments and metadata** are per score.
-- A reader MAY merge a file into a song that it already has. How it finds the song (by `song.ids`, by `title` and
-  `artist`, or by asking the user) is outside this specification (section 10). It MUST NOT overwrite or remove the
+- A reader MAY merge a file into a song that it already has. How it finds the song (by the manifest's `id`, by
+  `song.ids`, by `title` and `artist`, or by asking the user) is outside this specification (section 10), except that
+  two files with the same `id` MAY be treated as one song (section 4, "Pack identity"). It MUST NOT overwrite or remove the
   scores, recordings or sync points it already has unless the user asks it to. A score whose `sha256` matches one it
   already has is the same score, and a reader SHOULD NOT add a duplicate. Two recordings with the same `youtube`
   `videoId`, or the same audio `sha256`, share a source, and a reader MAY store that source once. It MUST keep both
@@ -720,7 +743,7 @@ A reader:
 7. SHOULD NOT fail on a missing optional part. A file with only a score is a valid file.
 
 Library matching, merging a file into a song (section 6.2), MusicBrainz lookups, and similar
-enrichment are application features. They are outside this specification. A reader MAY use `song.ids` for them.
+enrichment are application features. They are outside this specification. A reader MAY use the manifest's `id` and `song.ids` for them.
 
 ## 11. Writer requirements and enrichment
 
@@ -733,6 +756,8 @@ A writer:
 5. SHOULD write `generator`.
 6. SHOULD write audio entries Stored, and MUST use ZIP64 where section 3.1 requires it.
 7. SHOULD write a file in one pass over its audio, without holding the audio in memory.
+8. SHOULD write `id`, MUST keep the `id` of a pack it edits or copies for the same song, and MUST write a new `id` for a pack
+   of a different song (section 4, "Pack identity").
 
 ### Changing a score
 

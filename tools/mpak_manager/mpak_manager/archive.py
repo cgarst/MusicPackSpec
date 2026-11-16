@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 import hashlib
 import io
 import json
@@ -80,6 +81,7 @@ class MpakPackage:
         self.manifest: dict[str, Any] = {
             "format": "mpak",
             "version": 1,
+            "id": str(uuid.uuid4()),
             "createdAt": utc_now_iso(),
             "generator": {"name": APP_NAME, "version": APP_VERSION},
             "scores": [],

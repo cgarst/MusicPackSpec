@@ -8,6 +8,7 @@
   "properties": {
     "format": { "const": "mpak" },
     "version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$", "description": "The identity of the pack; kept when it is edited or copied for the same song (SPEC 4, Pack identity)." },
     "createdAt": { "type": "string", "format": "date-time" },
     "generator": {
       "type": "object",

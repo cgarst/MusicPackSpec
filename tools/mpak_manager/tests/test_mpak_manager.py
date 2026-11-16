@@ -128,6 +128,14 @@ class TestArchiveRoundTrip(unittest.TestCase):
             self.assertEqual(issues, [])
             self.assertEqual(reopened.manifest["x-custom-root"], {"hello": "world"})
             self.assertEqual(reopened.manifest["scores"][0]["x-color"], "#ff00aa")
+            # Saving made the sizes and the sync file's entry true (SPEC section 4, "Integrity")
+            self.assertEqual(reopened.manifest["scores"][0]["size"], len(score_bytes))
+            self.assertEqual(reopened.manifest["recordings"][0]["sources"][0]["size"], len(audio_bytes))
+            sync_bytes = reopened.read_entry_bytes("sync/mix.json")
+            self.assertEqual(reopened.manifest["entries"], {"sync/mix.json": {"size": len(sync_bytes), "sha256": sha256_bytes(sync_bytes)}})
+            # A changed sync file is reported until the package is saved again
+            reopened.manifest["entries"]["sync/mix.json"]["size"] += 1
+            self.assertTrue(any("Size differs" in i.message for i in validate_package(reopened, self.schemas)))
 
     def test_rejects_zip_slip_and_mimetype(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

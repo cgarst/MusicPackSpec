@@ -117,9 +117,42 @@ A file can hold hours of audio, so this specification sets no size limit of its 
 | `song` | object | no | Section 5. It can be empty or absent. |
 | `scores` | array | yes | One or more scores of the song. The first is the primary score. Section 6. |
 | `recordings` | array | no | Section 7. |
+| `entries` | object | no | Size and hash of the archive entries that the manifest names by path only (sync files and beat files). See "Integrity". |
 
 Other fields are allowed. A reader MUST ignore a field it does not know. A field that is private to an application SHOULD start with
 `x-` (section 13).
+
+### Integrity
+
+A manifest can state how big each file it points to is, and its hash, so that a reader, or a tool that keeps the entries
+as separate files, can tell a complete file from a damaged or half-written one.
+
+- `size` is the number of bytes of the file's content (not its compressed size in the archive). It is an optional field
+  of a score (section 6) and of a `file` audio source (section 7), next to `sha256`.
+- `entries` is an object from an archive path to `{ "size": <integer>, "sha256": "<hex>" }`, both required. It is for the
+  entries that the manifest names by path only, which have no field of their own for this: the sync files and the beat files.
+  It does not repeat the score and audio files, which carry `size` and `sha256` themselves. An item for a path that the
+  archive does not hold is ignored.
+
+```json
+"entries": {
+  "sync/r1.json": { "size": 1842, "sha256": "..." },
+  "beats/r1.json": { "size": 960, "sha256": "..." }
+}
+```
+
+All of it is optional, and none of it is needed to open a file.
+
+- A reader SHOULD warn when a size or hash that the manifest gives does not match the entry it reads, as for a score's
+  `sha256` (sections 10 and 12). It MAY then skip the sync or beat file that failed. It MUST NOT use a `size` from the
+  manifest as a limit or to size a buffer, because the manifest is untrusted input (sections 3 and 12): it takes sizes
+  from the central directory.
+- A reader MUST NOT hash audio in order to open a file (section 3). It MAY compare an audio `size` with the size in the
+  central directory, which costs nothing.
+- A writer SHOULD write `size` for each score and each `file` source, and an `entries` item for each sync file and each
+  beat file.
+- A writer MUST keep what it writes true. A writer that changes a sync file, a beat file, or an audio file in an existing
+  pack updates its `size` and `sha256`, or removes them (and for a score, section 11, "Changing a score" also applies).
 
 ### Pack identity
 
@@ -201,6 +234,7 @@ two arrangements (section 6.2).
 | `externalPath` | string | unless `path` | Relative path to a shared PDF file outside the archive (`pdf` only). |
 | `format` | enum | yes | `gp3`, `gp4`, `gp5`, `gp` (Guitar Pro 7 and later), `gpx`, `musicxml` (uncompressed MusicXML), `mxl` (compressed MusicXML), `mscz` (MuseScore), `midi` (Standard MIDI File), `abc` (ABC notation), `alphatex` (alphaTex, `.atex`), `pdf`, `txt`. |
 | `sha256` | string | yes | Lowercase hex SHA-256 of the score file's bytes. |
+| `size` | integer | no | Size of the score file in bytes. See "Integrity" in section 4. |
 | `name` | string | no | The original file name, for display. |
 | `pages` | integer | no | Page count of the PDF file, for `pdf`. |
 | `startPage` | integer | no | 1-based first page of this song inside a multi-song PDF (`pdf` only). |
@@ -398,6 +432,7 @@ Every source has a `type`. A source can also have these optional fields:
 - `offsetMs`: where this source starts on the recording's timeline. The default is 0.
 - `durationMs`: the length of the source, in milliseconds.
 - `sha256`: the hash of the audio bytes.
+- `size`: the size of the audio file in bytes (see "Integrity" in section 4).
 - `derivedFrom`: the `id` of another source of the same recording that this one was made from.
 
 | `type` | Extra fields | Meaning |
@@ -739,7 +774,8 @@ A reader:
 3. MUST ignore fields, entries, roles, sources and `ids` keys it does not know.
 4. MUST reject `version` greater than it supports, with a message saying the file needs a newer reader.
 5. MUST treat everything inside the archive as untrusted input (section 12).
-6. SHOULD warn when a score's `sha256` (or an alternate's) does not match the file.
+6. SHOULD warn when a score's `sha256` (or an alternate's) does not match the file, and likewise when a `size` or an `entries`
+   item (section 4, "Integrity") does not match.
 7. SHOULD NOT fail on a missing optional part. A file with only a score is a valid file.
 
 Library matching, merging a file into a song (section 6.2), MusicBrainz lookups, and similar
@@ -756,7 +792,9 @@ A writer:
 5. SHOULD write `generator`.
 6. SHOULD write audio entries Stored, and MUST use ZIP64 where section 3.1 requires it.
 7. SHOULD write a file in one pass over its audio, without holding the audio in memory.
-8. SHOULD write `id`, MUST keep the `id` of a pack it edits or copies for the same song, and MUST write a new `id` for a pack
+8. SHOULD write `size` for each score and `file` source and an `entries` item for each sync and beat file, and MUST keep them
+   true when it changes one of those files (section 4, "Integrity").
+9. SHOULD write `id`, MUST keep the `id` of a pack it edits or copies for the same song, and MUST write a new `id` for a pack
    of a different song (section 4, "Pack identity").
 
 ### Changing a score

@@ -2,6 +2,14 @@
 
 ## Version 1
 
+- Added integrity data (section 4, "Integrity"). A score and a `file` audio source can carry `size`, the size of the file in
+  bytes, next to `sha256`. A new manifest field `entries` maps an archive path to `{ size, sha256 }` for the entries that the
+  manifest names by path only, the sync files and the beat files. A reader SHOULD warn on a mismatch and MAY skip a sync or
+  beat file that fails; it MUST NOT take a limit from a manifest `size`, which stays untrusted. A writer SHOULD write them and
+  MUST keep them true when it changes a file. All of it is optional and ignorable by older readers, so there is no new
+  version. This lets a tool that keeps a pack's entries as separate files tell a complete file from a half-written one.
+  Added the invalid cases for a bad `size` and a bad `entries` item.
+
 - Added the manifest field `id` (section 4, "Pack identity"): the identity of a pack, kept when the pack is edited, copied
   or moved. 1 to 64 of `A-Z a-z 0-9 _ -`, a lowercase UUID for new packs (version 4, or version 5 when derived from the score). A writer keeps the `id` of a pack it edits
   or copies for the same song and writes a new one for a different song, and a reader MAY treat two files with the same `id`

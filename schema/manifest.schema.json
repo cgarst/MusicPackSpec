@@ -47,11 +47,25 @@
     "recordings": {
       "type": "array",
       "items": { "$ref": "#/$defs/recording" }
+    },
+    "entries": {
+      "type": "object",
+      "description": "Size and hash of the archive entries that the manifest names by path only: sync files and beat files (SPEC 4, Integrity).",
+      "propertyNames": { "$ref": "#/$defs/archivePath" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["size", "sha256"],
+        "properties": {
+          "size": { "$ref": "#/$defs/size" },
+          "sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
     }
   },
   "$defs": {
     "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "size": { "type": "integer", "minimum": 0, "description": "Size in bytes of the file's content (SPEC 4, Integrity)." },
     "archivePath": {
       "type": "string",
       "description": "Relative, UTF-8, '/' separated, no empty or '..' segment, no backslash.",
@@ -101,6 +115,7 @@
         "externalPath": { "$ref": "#/$defs/archivePath" },
         "format": { "enum": ["gp3", "gp4", "gp5", "gp", "gpx", "musicxml", "mxl", "mscz", "midi", "abc", "alphatex", "pdf", "txt"] },
         "sha256": { "$ref": "#/$defs/sha256" },
+        "size": { "$ref": "#/$defs/size" },
         "name": { "type": "string" },
         "pages": { "type": "integer", "minimum": 1 },
         "startPage": { "type": "integer", "minimum": 1 },
@@ -203,6 +218,7 @@
         "offsetMs": { "type": "number" },
         "durationMs": { "type": "number", "minimum": 0 },
         "sha256": { "$ref": "#/$defs/sha256" },
+        "size": { "$ref": "#/$defs/size" },
         "derivedFrom": { "$ref": "#/$defs/id" }
       },
       "allOf": [

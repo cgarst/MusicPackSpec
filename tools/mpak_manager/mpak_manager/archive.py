@@ -332,9 +332,41 @@ class MpakPackage:
         self._sha256_cache.pop(entry, None)
         self.dirty = True
 
+    def refresh_integrity(self) -> None:
+        """Make the manifest's sizes and hashes true again before a save (SPEC section 4, "Integrity").
+
+        Sets `size` on each score, alternate and `file` source whose entry is in the package, and writes an `entries` item
+        (size and sha256) for each sync file and beat file that a recording names. Hashes of scores and audio are not
+        recomputed here: those are set when the file is added or replaced.
+        """
+        def size_of(path):
+            return self.entry_size(path) if path and self.has_entry(path) else None
+
+        for score in self.manifest.get("scores", []):
+            for item in [score, *score.get("alternates", [])]:
+                size = size_of(item.get("path"))
+                if size is not None:
+                    item["size"] = size
+        for rec in self.manifest.get("recordings", []):
+            for src in rec.get("sources", []):
+                size = size_of(src.get("path")) if src.get("type") == "file" else None
+                if size is not None:
+                    src["size"] = size
+        entries: dict[str, dict[str, Any]] = {}
+        for rec in self.manifest.get("recordings", []):
+            for path in [*rec.get("sync", {}).values(), rec.get("beats")]:
+                if path and (path in self.sync_files or path in self.beats_files):
+                    data = self.read_entry_bytes(path)
+                    entries[path] = {"size": len(data), "sha256": sha256_bytes(data)}
+        if entries:
+            self.manifest["entries"] = entries
+        else:
+            self.manifest.pop("entries", None)
+
     def save_mpak(self, dest_path: Path, update_generator: bool = True) -> None:
         """Write the package atomically to `dest_path` as a ZIP64 .mpak archive."""
         dest_path = Path(dest_path)
+        self.refresh_integrity()
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         if update_generator:
             self.manifest["generator"] = {"name": APP_NAME, "version": APP_VERSION}
@@ -393,6 +425,7 @@ class MpakPackage:
         """Unpack/write the current package state into `dest_dir`."""
         dest_dir = Path(dest_dir)
         dest_dir.mkdir(parents=True, exist_ok=True)
+        self.refresh_integrity()
         if update_generator:
             self.manifest["generator"] = {"name": APP_NAME, "version": APP_VERSION}
         for entry in self.list_entries():

@@ -220,6 +220,36 @@ def validate_package(pkg: MpakPackage, schemas: SchemaRegistry, verify_hashes: b
                             )
                         )
 
+    # Sizes and hashes the manifest states for scores, audio files, and sync and beat files (SPEC section 4, "Integrity").
+    # A mismatch is a warning, as for a score's sha256.
+    for i, score in enumerate(scores):
+        if not isinstance(score, dict):
+            continue
+        for item, loc in [(score, f"manifest/scores/{i}")] + [
+            (alt, f"manifest/scores/{i}/alternates/{j}")
+            for j, alt in enumerate(score.get("alternates", []) if isinstance(score.get("alternates"), list) else [])
+            if isinstance(alt, dict)
+        ]:
+            path = item.get("path")
+            if isinstance(path, str) and isinstance(item.get("size"), int) and pkg.has_entry(path):
+                if pkg.entry_size(path) != item["size"]:
+                    issues.append(ValidationIssue("warning", loc, f"Score size differs from the manifest: {path}"))
+    for k, rec in enumerate(m.get("recordings", []) if isinstance(m.get("recordings"), list) else []):
+        for n, src in enumerate(rec.get("sources", []) if isinstance(rec, dict) and isinstance(rec.get("sources"), list) else []):
+            path = src.get("path") if isinstance(src, dict) and src.get("type") == "file" else None
+            if isinstance(path, str) and isinstance(src.get("size"), int) and pkg.has_entry(path) and pkg.entry_size(path) != src["size"]:
+                issues.append(ValidationIssue("warning", f"manifest/recordings/{k}/sources/{n}", f"Audio size differs from the manifest: {path}"))
+    entries = m.get("entries")
+    for path, info in (entries.items() if isinstance(entries, dict) else []):
+        if not isinstance(info, dict) or not pkg.has_entry(path):
+            continue
+        if isinstance(info.get("size"), int) and pkg.entry_size(path) != info["size"]:
+            issues.append(ValidationIssue("warning", f"manifest/entries/{path}", f"Size differs from the manifest: {path}"))
+        elif verify_hashes and isinstance(info.get("sha256"), str):
+            actual = pkg.entry_sha256(path)
+            if actual and actual != info["sha256"]:
+                issues.append(ValidationIssue("warning", f"manifest/entries/{path}", f"sha256 differs from the manifest: {path}"))
+
     # Check recordings -> sync, beats, file sources
     recs = m.get("recordings", []) if isinstance(m.get("recordings"), list) else []
     for i, r in enumerate(recs):

@@ -213,3 +213,21 @@ test('a derived pack id is the version 5 UUID of the score hash, and is stable',
   assert.equal(await derivedPackId('A'.repeat(64)), await derivedPackId('a'.repeat(64)));
   assert.deepEqual(validateManifest({ ...(await goodManifest()), id: await derivedPackId('1'.repeat(64)) }), []);
 });
+
+test('an entries item is checked against the sync file, and a mismatch is a warning, not an error', async () => {
+  const sync = u8(JSON.stringify({ version: 1, recording: 'r1', score: 'main', anchorType: 'text', updatedAt: '2026-01-01T00:00:00Z', points: [{ timeMs: 0, line: 0 }] }));
+  const manifest = async (info) => ({ ...(await goodManifest()), recordings: [{ id: 'r1', role: 'original', sources: [], sync: { main: 'sync/r1.json' } }], entries: { 'sync/r1.json': info } });
+  const pack = async (m) => open(await build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, { name: 'score/a.txt', data: u8('x') }, { name: 'sync/r1.json', data: sync }]));
+  assert.deepEqual((await pack(await manifest({ size: sync.length, sha256: await sha256(sync) }))).warnings, []);
+  assert.match((await pack(await manifest({ size: sync.length + 1, sha256: await sha256(sync) }))).warnings.join(), /size differs/);
+  assert.match((await pack(await manifest({ size: sync.length, sha256: '0'.repeat(64) }))).warnings.join(), /sha256 differs/);
+});
+
+test('a score size that differs from the file is a warning', async () => {
+  const m = await goodManifest();
+  m.scores[0].size = 99;
+  const o = await open(await build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, { name: 'score/a.txt', data: u8('x') }]));
+  assert.match(o.warnings.join(), /score size mismatch/);
+  m.scores[0].size = 1;
+  assert.deepEqual((await open(await build([{ name: 'manifest.json', data: u8(JSON.stringify(m)) }, { name: 'score/a.txt', data: u8('x') }]))).warnings, []);
+});

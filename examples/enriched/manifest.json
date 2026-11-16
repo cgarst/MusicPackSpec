@@ -46,5 +46,11 @@
       "fromBar": 4,
       "toBar": 8
     }
+  },
+  "entries": {
+    "sync/r1.json": {
+      "size": 548,
+      "sha256": "06939297653f424a4d6272a242861f1c5457a600ffdc511c42aa8645979bc247"
+    }
   }
 }

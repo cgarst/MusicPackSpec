@@ -20,6 +20,7 @@ reference/js/bin/mpak.js pack <folder> out.mpak`. The tool sets the hashes of th
 | `text` | A text score with line and column sync. |
 | `musicxml` | A MusicXML score with bar sync, and a repeated pass (`occurrence` 1). |
 | `multi-score` | Two scores, a Guitar Pro file and a PDF, each with its own sync for one recording, and an easy alternate that reuses the Guitar Pro sync. |
+| `origin` | Scores of one file with the same `origin` (four PDFs from one publisher) that a reader can show as one entry, beside a Guitar Pro file and a hand-made chart that have no `origin` and stand alone. |
 | `midi` | A MIDI file with tick sync. |
 | `alphatex` | An alphaTex score with bar sync. |
 | `abc` | An ABC notation score with line sync. |

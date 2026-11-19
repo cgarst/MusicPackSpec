@@ -283,6 +283,7 @@ two arrangements (section 6.2).
 | `sha256` | string | yes | Lowercase hex SHA-256 of the score file's bytes. |
 | `size` | integer | no | Size of the score file in bytes. See "Integrity" in section 4. |
 | `name` | string | no | The original file name, for display. |
+| `origin` | string | no | Where the score came from, as a name for people, such as a publisher, a service or an author. Scores of one file with the same `origin` can be shown as one entry (section 6.4). 1 or more characters. |
 | `pages` | integer | no | Page count of the PDF file, for `pdf`. |
 | `startPage` | integer | no | 1-based first page of this song inside a multi-song PDF (`pdf` only). |
 | `endPage` | integer | no | 1-based last page of this song inside a multi-song PDF (`pdf` only, `>= startPage`, `<= pages`). |
@@ -406,6 +407,30 @@ copy. Alternates are listed in the `alternates` array of their parent. Each item
 - **Instruments and metadata** are per alternate. An alternate MAY have different `instruments` (for example drop D), even
   though its bar structure matches.
 - A reader that does not know `alternates` ignores it (section 10) and shows only the scores in `scores`.
+
+### 6.4 Origin: scores shown together
+
+`origin` names where a score came from, such as a publisher, a service, or the person who wrote it. Scores of one file that
+have the same `origin` belong together: they are renderings or parts of one set, for example the tablature and the notation
+of each guitar part from one publisher. A reader MAY show them as one entry, for example one row in a list of the song's
+scores, with a way to switch between them inside the song.
+
+- **Equality.** Two scores have the same `origin` when the strings are equal, byte for byte. A reader MUST NOT compare them
+  by case or by meaning, and MUST NOT treat any value as special: `origin` is a label, not an identifier from a registry.
+- **No origin.** A score with no `origin` stands alone. A writer leaves `origin` out of a score that should be listed on its
+  own, for example a hand-made chart beside a published set.
+- **Display only.** `origin` changes nothing about how a score is read. It does not change the primary score (section 6),
+  how sync is kept (section 6.2, section 9), `stem.track` links (section 8) or `scoreTracks`. A score keeps its own sync.
+- **Which is shown first.** When a reader shows a set as one entry, it shows the first score of the set in `scores` order, or
+  the primary score if that is in the set. The others are listed by their `label`.
+- **Alternates.** An alternate (section 6.3) belongs to the set of its parent. A reader groups it with its parent whatever
+  its own `origin`. An alternate MAY have an `origin`, with the same meaning.
+- **Switching.** When the scores of a set are synced to a recording (section 9), a reader that switches from one to another
+  while a recording plays SHOULD keep the recording's playback position, and move the cursor by the new score's sync points.
+  A score with no sync for that recording is shown without a moving position (section 6.2).
+- **Older readers** ignore `origin` (section 10) and list every score separately.
+- **Merging.** When a reader merges a file into a song it already has (section 6.2), it MAY keep each score's `origin`. Scores
+  from different files with the same `origin` are not thereby one set: a reader groups the scores of one file.
 
 ## 7. Recordings
 

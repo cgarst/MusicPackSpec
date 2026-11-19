@@ -117,6 +117,7 @@
         "sha256": { "$ref": "#/$defs/sha256" },
         "size": { "$ref": "#/$defs/size" },
         "name": { "type": "string" },
+        "origin": { "type": "string", "minLength": 1 },
         "pages": { "type": "integer", "minimum": 1 },
         "startPage": { "type": "integer", "minimum": 1 },
         "endPage": { "type": "integer", "minimum": 1 },

@@ -2,6 +2,14 @@
 
 ## Version 1
 
+- Added `origin` to a score (section 6, section 6.4): a name for where the score came from, such as a publisher, a service or an
+  author. Scores of one file with the same `origin` are a set, and a reader MAY show a set as one entry that lets the user
+  switch between its scores inside the song, instead of one row for each. A score with no `origin` stands alone. It is
+  display only: it changes nothing about the primary score, sync, track links or `scoreTracks`, and each score keeps its
+  own sync. A reader that switches scores while a recording plays SHOULD keep the playback position. Optional and ignorable by
+  older readers, so there is no new version. Added the example `origin` and two invalid cases (an empty and a non-string
+  `origin`).
+
 - Added the directory form (section 3.2): a pack can be a directory whose files are the entries of the archive, with the same
   names and bytes, so a store that holds files separately (a folder, a cloud drive, object storage) can change one entry
   without rewriting a ZIP archive and can serve one file on its own. It is the same pack as the `.mpak` file with the same

@@ -1,0 +1,61 @@
+{
+  "format": "mpak",
+  "version": 1,
+  "song": {
+    "title": "Example Song",
+    "artist": "Example Artist"
+  },
+  "scores": [
+    {
+      "id": "gp",
+      "label": "Guitar Pro",
+      "path": "score/example.gp5",
+      "format": "gp5",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "guitar-1-tab",
+      "label": "Guitar 1 (Tablature)",
+      "path": "score/guitar-1-tab.pdf",
+      "format": "pdf",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pages": 9,
+      "origin": "Example Publisher"
+    },
+    {
+      "id": "guitar-1-score",
+      "label": "Guitar 1 (Score)",
+      "path": "score/guitar-1-score.pdf",
+      "format": "pdf",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pages": 9,
+      "origin": "Example Publisher"
+    },
+    {
+      "id": "guitar-2-tab",
+      "label": "Guitar 2 (Tablature)",
+      "path": "score/guitar-2-tab.pdf",
+      "format": "pdf",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pages": 9,
+      "origin": "Example Publisher"
+    },
+    {
+      "id": "guitar-2-score",
+      "label": "Guitar 2 (Score)",
+      "path": "score/guitar-2-score.pdf",
+      "format": "pdf",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pages": 9,
+      "origin": "Example Publisher"
+    },
+    {
+      "id": "mine",
+      "label": "My chart",
+      "path": "score/mine.pdf",
+      "format": "pdf",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pages": 1
+    }
+  ]
+}

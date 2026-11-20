@@ -2,6 +2,17 @@
 
 ## Version 1
 
+- Added a number form of sync points (section 9.1, "Bar times"). For `anchorType` `bar`, `points` MAY be an array of bare
+  numbers: the start of each played bar in seconds, as a service that publishes one time per bar returns them. The n-th number
+  is the start of the n-th played bar, a list may be shorter than the score (it covers the first bars) and a longer list is
+  ignored. It is another shape of `points`, so the sync file stays at `version` 1 and the manifest `version` is unchanged.
+  A reader that predates it finds points that are not objects and skips that sync file like any it cannot read (section 10,
+  rule 8); the pack still opens. The form needs the order that bars are played in, so section 9.1 now defines **played
+  bars**: repeat regions play their count in total passes, alternate endings play on their passes, and jumps are not
+  expanded (a list of bar times is not used on a score that has them, nor on a MusicXML, MuseScore or alphaTex score that has
+  repeat markers). Also added the optional sync fields `revisionId` and `videoId` (provenance only, section 9). Added the
+  example `bar-times` and five invalid cases.
+
 - Added `origin` to a score (section 6, section 6.4): a name for where the score came from, such as a publisher, a service or an
   author. Scores of one file with the same `origin` are a set, and a reader MAY show a set as one entry that lets the user
   switch between its scores inside the song, instead of one row for each. A score with no `origin` stands alone. It is

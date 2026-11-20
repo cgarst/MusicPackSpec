@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MpakError, openMpak, bytesSource, zipParts, concatParts } from '../src/core/index.js';
+import { MpakError, openMpak, bytesSource, zipParts, concatParts, placeBarTimes, isBarTimes } from '../src/core/index.js';
 import { u8, goodManifest, base } from './helpers.js';
 
 async function syncBundle(recordings, syncs, anchorType = 'text') {
@@ -146,4 +146,59 @@ test('a bad or mismatched beat file is a warning, and the recording has no beats
   assert.equal(r.warnings.length, 3);
   assert.equal(r.beats('a'), null);
   assert.equal(r.beats('b'), null);
+});
+
+// A list of bar times: bare numbers, the start of each played bar in seconds (SPEC section 9.1)
+const A = { id: 'a', role: 'original', sync: { main: 'sync/a.json' }, sources: [] };
+async function barTimesBundle(recordings, secs, extra = {}) {
+  const m = { ...await goodManifest(), scores: [{ ...(await goodManifest()).scores[0], path: 'score/a.gp', format: 'gp' }], recordings };
+  const files = [
+    { name: 'manifest.json', data: u8(JSON.stringify(m)) }, { name: 'score/a.gp', data: u8('x') },
+    { name: 'sync/a.json', data: u8(JSON.stringify({ version: 1, recording: 'a', score: 'main', anchorType: 'bar', points: secs, ...extra })) },
+  ];
+  return openMpak(bytesSource(await concatParts((await zipParts(files)).parts)));
+}
+const bars = (n) => Array.from({ length: n }, (_, i) => ({ barIndex: i, occurrence: 0 }));
+test('a list of bar times is read as a sync file and left unplaced until the played bars are known', async () => {
+  const r = await barTimesBundle([A], [0.12, 0.6, 3.78], { revisionId: 10071690, videoId: 'AAAAAAAAAAA' });
+  assert.deepEqual(r.warnings, []);
+  const s = r.sync('a');
+  assert.equal(isBarTimes(s), true);
+  assert.deepEqual(s.points, [0.12, 0.6, 3.78]);
+  assert.equal(s.revisionId, 10071690);
+});
+test('placeBarTimes puts the n-th time on the n-th played bar, repeats included', async () => {
+  const r = await barTimesBundle([A], [0.5, 2.5, 5, 7.5]);
+  const played = [{ barIndex: 0, occurrence: 0 }, { barIndex: 0, occurrence: 1 }, { barIndex: 1, occurrence: 0 }, { barIndex: 2, occurrence: 0 }];
+  const placed = placeBarTimes(r.sync('a'), played);
+  assert.equal(isBarTimes(placed), false);
+  assert.deepEqual(placed.points, [
+    { timeMs: 500, bar: 0, occurrence: 0, pos: 0 }, { timeMs: 2500, bar: 0, occurrence: 1, pos: 0 },
+    { timeMs: 5000, bar: 1, occurrence: 0, pos: 0 }, { timeMs: 7500, bar: 2, occurrence: 0, pos: 0 },
+  ]);
+});
+test('a shorter list covers the first bars, a longer one is ignored', async () => {
+  const r = await barTimesBundle([A], [0, 1, 2]);
+  assert.equal(placeBarTimes(r.sync('a'), bars(5)).points.length, 3);
+  assert.equal(placeBarTimes(r.sync('a'), bars(3)).points.length, 3);
+  assert.equal(placeBarTimes(r.sync('a'), bars(2)), null);
+  assert.equal(placeBarTimes(r.sync('a'), []), null);
+});
+test('the offset of a recording that shares a list is applied after placing, so no bar moves', async () => {
+  const r = await barTimesBundle([A, { id: 'b', role: 'backing', syncFrom: 'a', syncOffsetMs: -1500, sources: [] }], [0, 1, 2, 3]);
+  const placed = placeBarTimes(r.sync('b'), bars(4));
+  assert.deepEqual(placed.points.map((p) => [p.bar, p.timeMs]), [[2, 500], [3, 1500]]);
+  assert.equal(placed.recording, 'b');
+});
+test('placeBarTimes leaves a file with object points as it is', async () => {
+  const r = await syncBundle([{ id: 'a', role: 'original', sync: { main: 'sync/a.json' }, sources: [] }], { 'sync/a.json': [0, 1000] });
+  const s = r.sync('a');
+  assert.equal(placeBarTimes(s, bars(1)), s);
+});
+test('a list of bar times that breaks a rule is skipped with a warning', async () => {
+  for (const secs of [[0, 2, 2], [-1, 2], [0, 'x']]) {
+    const r = await barTimesBundle([A], secs);
+    assert.equal(r.sync('a'), null);
+    assert.equal(r.warnings.length, 1);
+  }
 });

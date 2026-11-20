@@ -142,9 +142,14 @@ def rule_errors_sync(s: dict[str, Any], loc: str, score_format: str | None = Non
     issues: list[ValidationIssue] = []
     pts = s.get("points", [])
     if isinstance(pts, list):
-        times = [p["timeMs"] for p in pts if isinstance(p, dict) and isinstance(p.get("timeMs"), (int, float))]
+        # Version 2 sync files hold bare numbers (seconds); version 1 holds objects with timeMs.
+        times = [
+            p if isinstance(p, (int, float)) else p["timeMs"]
+            for p in pts
+            if isinstance(p, (int, float)) or (isinstance(p, dict) and isinstance(p.get("timeMs"), (int, float)))
+        ]
         if any(b <= a for a, b in zip(times, times[1:])):
-            issues.append(ValidationIssue("error", loc, "timeMs not strictly increasing"))
+            issues.append(ValidationIssue("error", loc, "times not strictly increasing"))
     if score_format and ANCHOR_BY_FORMAT.get(score_format) != s.get("anchorType"):
         issues.append(
             ValidationIssue(

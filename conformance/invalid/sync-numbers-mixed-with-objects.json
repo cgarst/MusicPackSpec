@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "recording": "r1",
+  "score": "main",
+  "anchorType": "bar",
+  "points": [
+    0,
+    {
+      "timeMs": 2150,
+      "bar": 1
+    }
+  ]
+}

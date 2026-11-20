@@ -11,6 +11,7 @@ reference/js/bin/mpak.js pack <folder> out.mpak`. The tool sets the hashes of th
 |---|---|
 | `minimal` | The smallest valid file: a score and nothing else. |
 | `youtube-only` | A YouTube recording with bar sync, and a repeated bar (`occurrence` 1). |
+| `bar-times` | A sync file in the number form: one time in seconds for each played bar, with `revisionId` and `videoId` (section 9.1). |
 | `alternate-sync` | The same YouTube video in two recordings, each with its own sync points for the score. |
 | `enriched` | The same file after a tool added an audio file (`derivedFrom`). It also carries an extension field (`x-example-app`, section 13.1). |
 | `embedded` | A Guitar Pro 7+ score whose own audio track is the recording (`embedded` source), with a YouTube fallback. |

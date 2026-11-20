@@ -80,9 +80,11 @@ def rule_errors_beats(b):
 
 def rule_errors_sync(s, score_format=None):
     errs = []
-    t = [p["timeMs"] for p in s["points"]]
-    if any(b <= a for a, b in zip(t, t[1:])):
-        errs.append("timeMs not strictly increasing")
+    pts = s.get("points", [])
+    # The points are bare numbers (seconds, bar sync only) or objects with timeMs.
+    t = [p if isinstance(p, (int, float)) else p.get("timeMs") if isinstance(p, dict) else None for p in pts]
+    if all(isinstance(x, (int, float)) for x in t) and any(b <= a for a, b in zip(t, t[1:])):
+        errs.append("times not strictly increasing")
     if score_format and ANCHOR[score_format] != s["anchorType"]:
         errs.append(f"anchorType {s['anchorType']} does not match score format {score_format}")
     return errs
@@ -129,6 +131,8 @@ for p in sorted(glob.glob(f"{ROOT}/conformance/invalid/*.json")):
         errs = rule_errors_manifest(doc)
     if not errs and name.startswith("beats-"):
         errs = rule_errors_beats(doc)
+    if not errs and name.startswith("sync-"):
+        errs = rule_errors_sync(doc)
     print(("ok   " if errs else "FAIL ") + "invalid/" + name + ("" if errs else "  (was accepted)"))
     bad += not errs
 

@@ -720,8 +720,12 @@ recording's `sync` field refers to it, under the `id` of the score:
   alternate.
 - `anchorType` MUST match the format of that score (section 6). The points also apply to the score's alternates
   (section 6.3).
+- `points` is an array of objects or, for `anchorType` `bar`, an array of bare numbers (section 9.1, "Bar times"). The
+  `version` is 1 for both.
+- `revisionId` and `videoId` (optional) say where the times came from, and change nothing about how they are read.
+  See "Provenance" below.
 - A point MAY carry `x-` fields. A reader ignores any field of a point that it does not know.
-- `points` MUST be sorted by `timeMs`, strictly increasing. Each point has:
+- `points` is an array. With objects, it MUST be sorted by `timeMs`, strictly increasing. Each point has:
   - `timeMs`: milliseconds on the recording's timeline, 0 or more.
   - `source` (optional): `tap`, `manual`, or `auto`. The default is `manual`.
   - `id` (optional).
@@ -749,6 +753,19 @@ recording's `sync` field refers to it, under the `id` of the score:
   If exact timing matters, a writer SHOULD give the recording its own sync files.
 - Before the first point and after the last, a reader holds the first or last position. It MAY extrapolate instead.
 
+**Provenance.** A sync file MAY say where its times came from, as top-level fields next to `recording` and `score`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `revisionId` | integer or string | An identifier, from the service that the times came from, of the version of the score that the times were made for. |
+| `videoId` | string, 11 characters of `A-Z a-z 0-9 _ -` | The YouTube video that the times were made against. |
+
+Both are informational. A reader MUST NOT change how it reads the points, reject the file, or hide the recording because
+of them, and MUST NOT make a network request from them (section 10, rule 1). `videoId` can be out of date, because
+replacing a source of a recording keeps its points valid (section 7, "Timeline"); a reader that finds no `youtube` source
+with that id on the recording ignores it. A writer that knows the service's own identifiers MAY keep them in `x-` fields
+(section 13.1).
+
 ### 9.1 Anchor type `bar` (Guitar Pro, MusicXML, MuseScore, and alphaTex scores)
 
 | Field | Type | Meaning |
@@ -772,6 +789,59 @@ The master bar list of each format is:
   A staff with fewer bars counts as having empty bars at the end. Ignore the printed bar numbers (`\ac`, `\barNumber`),
   and do not expand repeats (`\ro`, `\rc`, `\ae`). The file MAY contain its own `\sync` points. A reader ignores them
   and uses the sync file, as it does for the sync points inside a `gp` file (section 7).
+
+#### Played bars
+
+The **played bars** of a score are its master bars in the order that they are played, with repeats expanded. Each played
+bar is a pair (`bar`, `occurrence`), where `occurrence` counts the passes through that bar so far, from 0.
+
+- A repeat region runs from a bar that opens a repeat (or from the first bar) to a bar that closes it. It is played as
+  many times as its repeat count says, where the count is the **total number of passes**: a repeat drawn "4x" plays
+  4 times. A count of 0 or 1 is one pass.
+- A bar that belongs to alternate endings is played only on the passes that its endings list.
+- Jumps (D.C., D.S., coda, segno) are not expanded by this version. A score that has jump markers has no played-bar
+  order here, and a reader MUST NOT use a list of bar times (below) on it.
+- For `gp3`, `gp4`, `gp5`, `gp` and `gpx`, the repeat open, repeat close count and alternate endings are the ones of the
+  file's master bars. For `musicxml`, `mxl`, `mscz` and `alphatex` this specification does not define how repeats
+  expand, so there the played bars are the master bars, and a reader MUST NOT use a list of bar times on a score of those
+  formats that has repeat markers.
+
+A score without repeats has as many played bars as master bars, and the played bars are the master bars in order.
+Example: a score of 100 master bars whose bar 0 is a repeat drawn "4x" has 103 played bars: bar 0 with occurrence 0 to 3,
+then bars 1 to 99.
+
+#### Bar times (`points` as numbers)
+
+For `anchorType` `bar`, `points` MAY be an array of bare numbers instead of objects. The `version` stays 1: this is another
+shape of `points`, not a new version of the format (section 13).
+
+- Each number is the start of one played bar, in **seconds** on the recording's timeline. They are finite, 0 or more, and
+  strictly increasing. The n-th number (counting from 1) is the start of the n-th played bar. It means the same as
+  `{ "timeMs": <seconds × 1000, rounded>, "bar": ..., "occurrence": ..., "pos": 0 }` for that played bar.
+- The list has at most one number per played bar. A shorter list covers the first played bars only: bars after the last
+  number have no point, and the reader holds the last position (section 9, "Before the first point"). A list with more
+  numbers than the score has played bars is ignored, as if there were no sync file for that score. The reader MUST NOT drop
+  the extra numbers and use the rest.
+- A file uses one form for all its points. An object point cannot appear in a list of numbers.
+- The form is only for `bar`. It is not allowed for `tick`, `pdf` or `text`.
+- The reader checks the length, because only it has the score. A writer that cannot work out the played bars writes the
+  list as the service gave it, and a writer that can SHOULD NOT write a list that it knows is for another bar layout.
+  A list that is a bar or more short, because of a repeat that the source played one pass fewer, puts every later bar one
+  bar off. The specification cannot detect this. Points as objects name their bars, so they do not have the problem.
+- `syncOffsetMs` and `syncFrom` apply as for objects (section 9), after the numbers are placed on played bars: a reader
+  adds the offset to each placed time, and then drops any point that is below 0.
+
+To read a list of bar times, a reader:
+
+1. computes the played bars of the score (above), or stops if the format or the score's markers do not allow it;
+2. ignores the list if it has more numbers than the score has played bars;
+3. otherwise takes number n as the point of played bar n, like an object point with that `bar` and `occurrence`.
+
+```json
+{ "version": 1, "recording": "r1", "score": "main", "anchorType": "bar",
+  "revisionId": 10071690, "videoId": "AAAAAAAAAAA",
+  "points": [0.12, 0.6, 3.78, 6.87, 9.98] }
+```
 
 ### 9.2 Anchor type `pdf`
 
@@ -844,11 +914,14 @@ A reader:
 1. MUST open a file with no network access, and MUST NOT make a network request in order to open one.
 2. MUST NOT fetch a `url` source, or start a `youtube` source, until the user asks to play that recording.
 3. MUST ignore fields, entries, roles, sources and `ids` keys it does not know.
-4. MUST reject `version` greater than it supports, with a message saying the file needs a newer reader.
+4. MUST reject a manifest `version` greater than it supports, with a message saying the file needs a newer reader.
 5. MUST treat everything inside the archive as untrusted input (section 12).
 6. SHOULD warn when a score's `sha256` (or an alternate's) does not match the file, and likewise when a `size` or an `entries`
    item (section 4, "Integrity") does not match.
 7. SHOULD NOT fail on a missing optional part. A file with only a score is a valid file.
+8. MUST skip a sync file that it cannot read, such as one with a list of bar times (section 9.1) when it does not support
+   them, so that the recording has no sync data for that score and the pack still opens. A reader that supports bar times
+   MUST NOT use a list on a score for which it cannot work out the played bars (section 9.1).
 
 Library matching, merging a file into a song (section 6.2), MusicBrainz lookups, and similar
 enrichment are application features. They are outside this specification. A reader MAY use the manifest's `id` and `song.ids` for them.
@@ -868,6 +941,8 @@ A writer:
    true when it changes one of those files (section 4, "Integrity"). In directory form it MUST write them (section 3.2).
 9. SHOULD write `id`, MUST keep the `id` of a pack it edits or copies for the same song, and MUST write a new `id` for a pack
    of a different song (section 4, "Pack identity").
+10. SHOULD write the list of bar times (section 9.1) only for a list of one time per played bar, and SHOULD write
+    `revisionId` and `videoId` when it knows them.
 
 ### Changing a score
 
@@ -936,6 +1011,9 @@ A reader MUST protect against:
 - `version` is the major version. A change that older readers can ignore does not change it. Examples are a new optional
   field, role, source type, or anchor field. A change that older readers cannot ignore changes it.
 - Readers ignore what they do not know, so writers can add fields at any time.
+- A list of bar times (section 9.1) is another shape of `points` in a version 1 sync file, not a new version. A reader that
+  predates it finds points that are not objects, and skips that sync file as it skips any it cannot read (section 10,
+  rule 8), so the recording has no sync data for that score and the pack still opens.
 - A reader that rewrites a file SHOULD keep unknown fields and `x-` fields, and unknown archive entries (in directory form, unknown files).
 
 ### 13.1 Extensions

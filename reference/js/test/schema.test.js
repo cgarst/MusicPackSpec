@@ -30,7 +30,7 @@ test('every invalid case is refused by both', () => {
   for (const f of invalid) {
     const doc = load(path.join(ROOT, 'conformance/invalid', f));
     if (f.startsWith('beats-')) { assert.ok(validateBeats(doc).length, f); if (f !== 'beats-time-not-increasing.json') assert.ok(beatsSchemaErrorsAjv(doc).length, f); }
-    else if (f.startsWith('sync-')) { assert.ok(validateSync(doc, f === 'sync-anchor-mismatch.json' ? 'gp5' : undefined).length, f); assert.ok(syncSchemaErrorsAjv(doc).length || f === 'sync-anchor-mismatch.json', f); }
+    else if (f.startsWith('sync-')) { assert.ok(validateSync(doc, f === 'sync-anchor-mismatch.json' ? 'gp5' : undefined).length, f); assert.ok(syncSchemaErrorsAjv(doc).length || ['sync-anchor-mismatch.json', 'sync-numbers-not-increasing.json'].includes(f), f); }
     else { assert.ok(validateManifest(doc).length, f); }
   }
 });

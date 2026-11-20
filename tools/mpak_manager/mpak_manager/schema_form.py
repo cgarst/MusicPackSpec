@@ -189,6 +189,8 @@ class NodeEditorWidget(QTabWidget):
             item_eff = resolve_schema(ref.root_schema, item_schema, arr[0] if arr else None)
             if item_eff.get("type") == "object" or "properties" in item_eff:
                 self._build_object_array_table(outer, ref, doc, arr, item_schema)
+            elif item_eff.get("type") == "number" and ref.json_path and ref.json_path[-1] == "points":
+                self._build_bar_times_table(outer, ref, doc, arr)
             else:
                 self._build_primitive_list_editor(outer, ref, doc, arr, item_eff)
             return
@@ -219,7 +221,9 @@ class NodeEditorWidget(QTabWidget):
                 continue
             if prop_type == "array":
                 items_eff = resolve_schema(ref.root_schema, prop_eff.get("items", {}))
-                if items_eff.get("type") == "object" or "properties" in items_eff:
+                if items_eff.get("type") == "object" or "properties" in items_eff or (
+                    key == "points" and items_eff.get("type") == "number"
+                ):
                     count = len(prop_val) if isinstance(prop_val, list) else 0
                     lbl = QLabel(f"<i>({count} items — select '{key}' in tree)</i>")
                     form.addRow(self._field_label(key, key in required, prop_eff), lbl)
@@ -460,6 +464,81 @@ class NodeEditorWidget(QTabWidget):
         btn_shift.clicked.connect(shift_rows)
 
         outer.addWidget(table)
+        self._active_table = table
+
+    def _build_bar_times_table(self, outer: QVBoxLayout, ref: TreeNodeRef, doc: Any, arr: list[Any]) -> None:
+        """A list of bar times (SPEC section 9.1): one row per played bar, the start in seconds. Scrolls like the points table."""
+        toolbar = QHBoxLayout()
+        btn_add = QPushButton("+ Add Row")
+        btn_del = QPushButton("Remove Selected")
+        btn_sort = QPushButton("Sort")
+        btn_shift = QPushButton("Shift ±s…")
+        for btn in (btn_add, btn_del, btn_sort, btn_shift):
+            toolbar.addWidget(btn)
+        toolbar.addStretch(1)
+        toolbar.addWidget(QLabel(f"{len(arr)} played bars (n-th time = start of the n-th played bar)"))
+        outer.addLayout(toolbar)
+
+        table = QTableWidget(len(arr), 2)
+        table.setHorizontalHeaderLabels(["Played bar", "Start (s)"])
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.setMinimumHeight(360)
+        for r_idx, value in enumerate(arr):
+            number = QTableWidgetItem(str(r_idx + 1))
+            number.setFlags(number.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            table.setItem(r_idx, 0, number)
+            table.setItem(r_idx, 1, QTableWidgetItem("" if not isinstance(value, (int, float)) else f"{value:g}"))
+
+        def changed() -> None:
+            self._touch_aux_timestamp(ref, doc)
+            assert self.pkg is not None
+            self.pkg.dirty = True
+            self.set_node(self.pkg, ref)
+            self.dataChanged.emit(ref.location)
+
+        def on_cell_changed(r_idx: int, c_idx: int) -> None:
+            item = table.item(r_idx, c_idx)
+            if c_idx != 1 or item is None or r_idx >= len(arr):
+                return
+            try:
+                arr[r_idx] = max(0.0, float(item.text().strip()))
+            except ValueError:
+                return
+            self._touch_aux_timestamp(ref, doc)
+            assert self.pkg is not None
+            self.pkg.dirty = True
+            self.dataChanged.emit(ref.location)
+
+        def add_row() -> None:
+            last = arr[-1] if arr and isinstance(arr[-1], (int, float)) else 0.0
+            arr.append(round(last + 2.0, 3))
+            changed()
+
+        def del_rows() -> None:
+            for r_idx in sorted({idx.row() for idx in table.selectedIndexes()}, reverse=True):
+                if 0 <= r_idx < len(arr):
+                    arr.pop(r_idx)
+            changed()
+
+        def sort_rows() -> None:
+            arr.sort(key=lambda x: x if isinstance(x, (int, float)) else 0)
+            changed()
+
+        def shift_rows() -> None:
+            delta, ok = QInputDialog.getDouble(self, "Shift times", "Delta (seconds, may be negative):", 0.0, -3600.0, 3600.0, 3)
+            if not ok or delta == 0:
+                return
+            for i, x in enumerate(arr):
+                if isinstance(x, (int, float)):
+                    arr[i] = round(max(0.0, x + delta), 3)
+            changed()
+
+        table.cellChanged.connect(on_cell_changed)
+        btn_add.clicked.connect(add_row)
+        btn_del.clicked.connect(del_rows)
+        btn_sort.clicked.connect(sort_rows)
+        btn_shift.clicked.connect(shift_rows)
+        outer.addWidget(table, 1)
         self._active_table = table
 
     def _build_primitive_list_editor(

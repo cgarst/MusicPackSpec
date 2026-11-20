@@ -81,6 +81,14 @@ def _matches_condition(root_schema: dict[str, Any], cond_schema: dict[str, Any],
     return Draft202012Validator(full_cond).is_valid(data)
 
 
+def _is_valid(root_schema: dict[str, Any], schema: dict[str, Any], data: Any) -> bool:
+    """Check whether `data` of any kind satisfies `schema`."""
+    full = dict(schema)
+    if "$defs" in root_schema and "$defs" not in full:
+        full["$defs"] = root_schema["$defs"]
+    return Draft202012Validator(full).is_valid(data)
+
+
 def _merge_schema_into(dst: dict[str, Any], src: dict[str, Any]) -> None:
     """Merge effective JSON Schema keywords from `src` into `dst`."""
     for key in (
@@ -98,6 +106,7 @@ def _merge_schema_into(dst: dict[str, Any], src: dict[str, Any]) -> None:
         "minItems",
         "uniqueItems",
         "items",
+        "anyOf",
         "additionalProperties",
         "propertyNames",
     ):
@@ -131,7 +140,7 @@ def resolve_schema(
         return {}
     base = resolve_ref(root_schema, sub_schema)
     out: dict[str, Any] = {}
-    _merge_schema_into(out, {k: v for k, v in base.items() if k not in ("allOf", "if", "then", "else", "oneOf")})
+    _merge_schema_into(out, {k: v for k, v in base.items() if k not in ("allOf", "if", "then", "else", "oneOf", "anyOf")})
 
     if "if" in base and data is not None:
         branch = base.get("then") if _matches_condition(root_schema, base["if"], data) else base.get("else")
@@ -142,6 +151,13 @@ def resolve_schema(
     for sub in base.get("allOf", []):
         resolved_sub = resolve_schema(root_schema, sub, data)
         _merge_schema_into(out, resolved_sub)
+
+    # For anyOf (a sync file's `points`: objects, or numbers for bar sync), take the alternative that `data` satisfies, else the first
+    if "anyOf" in base:
+        alts = [a for a in base["anyOf"] if isinstance(a, dict)]
+        picked = next((a for a in alts if data is not None and _is_valid(root_schema, a, data)), alts[0] if alts else None)
+        if picked is not None:
+            _merge_schema_into(out, resolve_schema(root_schema, picked, data))
 
     # For oneOf (e.g., score path/externalPath or scoreTracks omits/only), collect all candidate properties
     # so the form can display and switch between them.

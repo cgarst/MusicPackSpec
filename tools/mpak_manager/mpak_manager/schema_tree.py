@@ -246,8 +246,9 @@ class PackTreeWidget(QTreeWidget):
                 elif prop_type == "array":
                     items_schema = prop_eff.get("items", {})
                     items_eff = resolve_schema(root_schema, items_schema)
-                    # Show array branch in tree if items are objects (or if it's points/beats/sections)
-                    if items_eff.get("type") == "object" or "properties" in items_eff:
+                    # Show array branch in tree if items are objects (or if it's points/beats/sections), and for a list of bar times (numbers)
+                    is_bar_times = key == "points" and items_eff.get("type") == "number"
+                    if items_eff.get("type") == "object" or "properties" in items_eff or is_bar_times:
                         arr = prop_val if isinstance(prop_val, list) else []
                         c_ref = TreeNodeRef(kind, doc_key, child_path, root_schema, prop_schema, child_loc)
                         c_item = self._make_item(f"{key} ({len(arr)})", c_ref)

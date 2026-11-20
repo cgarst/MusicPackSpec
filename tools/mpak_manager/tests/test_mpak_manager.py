@@ -39,6 +39,26 @@ class TestSchemaAndValidator(unittest.TestCase):
         self.assertIn("url", url_eff["properties"])
         self.assertNotIn("videoId", url_eff["properties"])
 
+    def test_sync_points_resolve_as_numbers_or_objects(self) -> None:
+        # A list of bar times (SPEC section 9.1) must resolve to number items, which the points list shows;
+        # object points still resolve to objects.
+        base = {"version": 1, "recording": "r1", "score": "main", "anchorType": "bar"}
+
+        def item_type(points: list) -> str | None:
+            doc = {**base, "points": points}
+            eff = resolve_schema(self.schemas.sync, self.schemas.sync, doc)
+            points_eff = resolve_schema(self.schemas.sync, eff["properties"]["points"], points)
+            return resolve_schema(self.schemas.sync, points_eff.get("items", {}), points[0] if points else None).get("type")
+
+        self.assertEqual(item_type([0.12, 0.6, 3.78]), "number")
+        self.assertEqual(item_type([{"timeMs": 0, "bar": 0}]), "object")
+        self.assertEqual(item_type([]), "object")
+
+    def test_bar_times_must_increase(self) -> None:
+        base = {"version": 1, "recording": "r1", "score": "main", "anchorType": "bar"}
+        self.assertEqual(rule_errors_sync({**base, "points": [0, 2.15, 4.3]}, "sync"), [])
+        self.assertTrue(rule_errors_sync({**base, "points": [0, 2.15, 2.15]}, "sync"))
+
     def test_all_examples_validate(self) -> None:
         example_dirs = sorted((REPO_ROOT / "examples").iterdir())
         checked = 0
